@@ -1,0 +1,48 @@
+# Private notes — local only, never pushed.
+# All learnings, teardowns, decisions and experiment logs live here.
+docs/all/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+.pytest_cache/
+uv.lock
+
+# C++
+build/
+cpp/build/
+*.o
+*.a
+*.so
+*.dylib
+compile_commands.json
+.cache/
+
+# Node
+node_modules/
+dist/
+
+# Generated data and checkpoints.
+# Leading slash anchors these to the repo root, so python/tinylab/data/ is NOT ignored.
+/data/
+/checkpoints/
+/runs/
+*.npz
+*.safetensors
+
+# Large exported artifacts. The primary open-weight artifact SHOULD be committed
+# once its size is known; these two formats are regenerable.
+/models/*.onnx
+/models/*.gguf
+
+# Teacher models — large, redistributed separately
+/teachers/
+
+# macOS
+.DS_Store
+
+# Editors
+.idea/
+.vscode/

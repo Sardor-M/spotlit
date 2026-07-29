@@ -1,0 +1,30 @@
+[project]
+name = "tinylab"
+version = "0.0.0"
+description = "Training side for very small on-device models"
+requires-python = ">=3.12,<3.14"
+
+# Kept empty until ADR-0001 fixes the problem and therefore the framework.
+# Expected additions once decided:
+#   mlx      — training on Apple Silicon      (see docs/learnings/02-mlx/)
+#   numpy    — data handling
+#   onnxruntime — running the teacher in bulk (see docs/learnings/03-onnx/)
+dependencies = []
+
+[project.optional-dependencies]
+# Teacher-side dependencies are isolated so the training environment stays small.
+teacher = []
+
+[project.scripts]
+# One entry point per pipeline stage, following Moka's `go-*` convention.
+# tinylab-generate = "tinylab.data.generate:main"
+# tinylab-train    = "tinylab.train.train:main"
+# tinylab-export   = "tinylab.export.export:main"
+# tinylab-eval     = "tinylab.eval.arena:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["python/tinylab"]

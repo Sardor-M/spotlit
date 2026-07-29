@@ -1,0 +1,136 @@
+# tinylab
+
+Building very small models that run on device — in a browser tab, in a C++ binary, on a
+microcontroller — and releasing them as open weights.
+
+Early stage. This repository currently holds the layout and the toolchain. Code arrives
+step by step.
+
+## The idea
+
+A large model's judgment over a narrow, fixed-shape input can be compressed into a few
+hundred kilobytes, if you distill it densely, quantize it deliberately, and measure it
+honestly.
+
+The reference artifact is [millionco/moka](https://github.com/millionco/moka): a
+105,353-parameter Go network, 114 KB of INT8 weights, running in an ordinary webpage with
+no ML framework on the deployment side. The domain is interchangeable; Go is just the demo.
+
+```
+   TEACHER                        STUDENT                     ARTIFACT
+   large, slow, accurate          small, fast, close enough   what ships
+
+   +-------------------+          +-----------------+         +----------------+
+   |  1M-1B params     |          |  ~100K params   |         |  ~100-500 KB   |
+   |  megabytes        |  ---->   |  fixed shape    |  ---->  |  INT8 weights  |
+   |  needs a runtime  | distill  |  no framework   | quantize|  + manifest    |
+   +-------------------+          +-----------------+         +----------------+
+                                                                     |
+                                                                     v
+                                               +---------------------+-------------------+
+                                               |                     |                   |
+                                          C++ binary            browser Worker      microcontroller
+                                          (hand-written         (hand-written       (integer kernels,
+                                           kernels)              kernels)            no FPU)
+```
+
+## Layout
+
+```
+tinylab/
+├── python/tinylab/     training side
+│   ├── data/               dataset generation, teacher labelling
+│   ├── models/             network definitions
+│   ├── train/              training loop, losses, quantization-aware training
+│   └── export/             quantization, manifest + binary writer
+├── cpp/                inference side, hand-written kernels, no dependencies
+│   ├── include/tinylab/
+│   └── src/
+├── web/                browser runtime (Worker + hand-written kernels)
+├── models/             exported artifacts and manifests
+└── docs/
+    └── all/            private notes, gitignored, local only
+```
+
+`docs/all/` is deliberately excluded from git. It holds working notes, source teardowns,
+decision records and the experiment log. Those are for building understanding, not for
+publishing.
+
+## Principles
+
+Carried over from studying the reference implementation.
+
+**Build the evaluation harness before the model.** Everything downstream is only meaningful
+if the number is trustworthy. Split held-out data by the natural correlated unit — document,
+session, recording — never by row. Seal a final test set and open it once.
+
+**Never select on a proxy metric.** In the reference project, the checkpoint with the best
+held-out accuracy was one of its weakest players in actual head-to-head games. Score the
+thing you care about, end to end.
+
+**Spend effort at inference time, not only on weights.** Training work moved the reference
+model from 2 to 19 arena wins. Search and test-time ensembling moved it from 19 to 51.
+
+**Size budgets are gates, not preferences.** Export fails when the artifact exceeds the
+budget, the same way a failing test fails a build.
+
+**Record what did not work, with the number.** A rejected idea you can point at is worth
+more than a vague memory that it "didn't work."
+
+## Roadmap
+
+Each phase ends with something measurable.
+
+```
+  [0] understand the reference      done
+       |
+  [1] choose the problem            fixes the teacher, input shape, and budgets
+       |
+  [2] build the evaluation harness  BEFORE any model exists
+       |
+  [3] trivial baseline              "better than nothing" becomes a number
+       |
+  [4] teacher                       large model producing labels in bulk
+       |
+  [5] student v0                    any learned model that beats the baseline
+       |
+  [6] distill properly              dense targets, on-policy correction
+       |
+  [7] quantize                      INT8 export against a hard byte budget
+       |
+  [8] serve                         C++ runtime, then browser; latency measured
+       |
+  [9] release                       open weights, licence, model card, embed example
+```
+
+Phase 2 before phase 4 is not a typo. If the harness comes after the first results, the
+metric gets chosen to fit numbers you have already seen.
+
+## Getting started
+
+Both sides are stubs. They exist so the toolchain is proven before there is anything real
+to compile.
+
+```sh
+# training side (uv provisions its own interpreter)
+uv sync
+
+# inference side
+cmake -S cpp -B cpp/build -DCMAKE_BUILD_TYPE=Release
+cmake --build cpp/build
+./cpp/build/tinylab_cli
+```
+
+Requires a C++20 compiler, [CMake](https://cmake.org/), and [uv](https://docs.astral.sh/uv/).
+
+Without CMake installed, the scaffold builds directly:
+
+```sh
+clang++ -std=c++20 -O3 -Icpp/include cpp/src/*.cpp -o /tmp/tinylab_cli && /tmp/tinylab_cli
+```
+
+## Licence
+
+MIT for code. The weights licence will be stated separately once there are weights — code
+licences do not clearly cover model weights, and leaving that ambiguous is the most common
+failure in "open weights" releases.
