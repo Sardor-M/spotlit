@@ -15,8 +15,7 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_BUILD_TYPE Release CACHE STRING "" FORCE)
 endif()
 
-# The whole point of this target is that it has no dependencies.
-# Anything added here needs a line in docs/decisions/ explaining why.
+# No dependencies, by design. Adding one needs an ADR.
 add_library(tinylab_runtime
     src/runtime.cpp
 )
@@ -25,8 +24,7 @@ target_include_directories(tinylab_runtime
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 )
 
-# -O3 plus a native target is what auto-vectorizes the contiguous inner loop of a
-# naive convolution. Measure before reaching for intrinsics.
+# -O3 plus -march=native auto-vectorizes the naive convolution inner loop.
 target_compile_options(tinylab_runtime PRIVATE
     $<$<CONFIG:Release>:-O3>
     $<$<AND:$<CONFIG:Release>,$<NOT:$<BOOL:${TINYLAB_PORTABLE}>>>:-march=native>
@@ -35,7 +33,3 @@ target_compile_options(tinylab_runtime PRIVATE
 
 add_executable(tinylab_cli src/main.cpp)
 target_link_libraries(tinylab_cli PRIVATE tinylab_runtime)
-
-# Tests are added once there is something to test.
-# enable_testing()
-# add_subdirectory(tests)
