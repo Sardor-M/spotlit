@@ -1,0 +1,26 @@
+{"query_id": "q-espresso-sour", "text": "why is my shot sour and thin", "relevant": {"espresso-1": 2, "espresso-3": 1}}
+{"query_id": "q-espresso-channel", "text": "water finds an uneven path through the puck", "relevant": {"espresso-2": 2}}
+{"query_id": "q-bike-slip", "text": "chain slips on the cassette under load", "relevant": {"bicycle-1": 2, "bicycle-2": 1}}
+{"query_id": "q-bike-wear", "text": "how often to replace a worn chain", "relevant": {"bicycle-2": 2}}
+{"query_id": "q-bike-shift", "text": "rear derailleur cable tension adjustment", "relevant": {"bicycle-3": 2}}
+{"query_id": "q-sour-dense", "text": "bread crumb came out dense with a pale crust", "relevant": {"sourdough-2": 2}}
+{"query_id": "q-sour-ready", "text": "is my starter ready to leaven bread", "relevant": {"sourdough-1": 2}}
+{"query_id": "q-sour-cold", "text": "retarding dough overnight in the refrigerator", "relevant": {"sourdough-3": 2}}
+{"query_id": "q-monstera-yellow", "text": "yellow leaves from overwatering", "relevant": {"monstera-1": 2}}
+{"query_id": "q-monstera-splits", "text": "why do new leaves emerge without splits", "relevant": {"monstera-2": 2}}
+{"query_id": "q-sleep-caffeine", "text": "afternoon caffeine still present at bedtime", "relevant": {"sleep-2": 2}}
+{"query_id": "q-sleep-light", "text": "morning light and the circadian clock", "relevant": {"sleep-1": 2}}
+{"query_id": "q-sleep-cool", "text": "cool dark room and body temperature", "relevant": {"sleep-3": 2}}
+{"query_id": "q-run-wall", "text": "running out of glycogen late in a race", "relevant": {"marathon-2": 2}}
+{"query_id": "q-run-easy", "text": "how easy should easy days be", "relevant": {"marathon-1": 2}}
+{"query_id": "q-tax-receipts", "text": "receipts for a business expense deduction", "relevant": {"taxes-1": 2}}
+{"query_id": "q-tax-quarterly", "text": "quarterly estimated payments and underpayment penalty", "relevant": {"taxes-2": 2}}
+{"query_id": "q-guitar-buzz", "text": "buzzing on the lower frets and neck relief", "relevant": {"guitar-1": 2}}
+{"query_id": "q-guitar-intonation", "text": "setting intonation at the saddles", "relevant": {"guitar-2": 2}}
+{"query_id": "q-sqlite-bulk", "text": "bulk inserts are slow without a transaction", "relevant": {"sqlite-1": 2}}
+{"query_id": "q-sqlite-index", "text": "planner ignores my index on the where clause", "relevant": {"sqlite-3": 2}}
+{"query_id": "q-rust-borrow", "text": "two mutable references to the same value", "relevant": {"rust-1": 2, "rust-2": 1}}
+{"query_id": "q-bees-queen", "text": "hive is loud and there are no eggs", "relevant": {"beekeeping-1": 2}}
+{"query_id": "q-bees-winter", "text": "feeding sugar syrup for winter stores", "relevant": {"beekeeping-2": 2}}
+{"query_id": "q-kimchi-mould", "text": "mould where the vegetables sit above the brine", "relevant": {"kimchi-2": 2}}
+{"query_id": "q-kimchi-salt", "text": "salting cabbage so the leaves stay crisp", "relevant": {"kimchi-1": 2}}

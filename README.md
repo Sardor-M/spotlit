@@ -3,8 +3,12 @@
 Building very small models that run on device — in a browser tab, in a C++ binary, on a
 microcontroller — and releasing them as open weights.
 
-Early stage. This repository currently holds the layout and the toolchain. Code arrives
-step by step.
+Early stage. The problem is chosen and the evaluation harness exists; the model does not
+yet.
+
+**Current target:** a tokenizer-free text embedding model — short text to a 64-256 dim
+vector, distilled from a strong sentence embedder, with hashed character n-grams instead of
+a vocabulary file. 500 KB INT8, hard budget. First consumer is hybrid retrieval.
 
 ## The idea
 
@@ -38,7 +42,9 @@ no ML framework on the deployment side. The domain is interchangeable; Go is jus
 
 ```
 tinylab/
+├── AGENTS.md           rules for writing code here
 ├── python/tinylab/     training side
+│   ├── eval/               evaluation harness, baselines, keep/discard gate
 │   ├── data/               dataset generation, teacher labelling
 │   ├── models/             network definitions
 │   ├── train/              training loop, losses, quantization-aware training
@@ -84,11 +90,11 @@ Each phase ends with something measurable.
 ```
   [0] understand the reference      done
        |
-  [1] choose the problem            fixes the teacher, input shape, and budgets
+  [1] choose the problem            done — tokenizer-free text embedder
        |
-  [2] build the evaluation harness  BEFORE any model exists
+  [2] build the evaluation harness  done — python/tinylab/eval/, zero dependencies
        |
-  [3] trivial baseline              "better than nothing" becomes a number
+  [3] trivial baseline              done on the fixture; pending a real corpus
        |
   [4] teacher                       large model producing labels in bulk
        |
@@ -108,10 +114,14 @@ metric gets chosen to fit numbers you have already seen.
 
 ## Getting started
 
-Both sides are stubs. They exist so the toolchain is proven before there is anything real
-to compile.
+The evaluation harness runs today. The model sides are still stubs that prove the
+toolchain.
 
 ```sh
+# evaluation harness — stdlib only, no install needed
+PYTHONPATH=python python3 -m tinylab.eval.cli selfcheck
+PYTHONPATH=python python3 -m tinylab.eval.cli run --system bm25 --split val
+
 # training side (uv provisions its own interpreter)
 uv sync
 
@@ -128,6 +138,11 @@ Without CMake installed, the scaffold builds directly:
 ```sh
 clang++ -std=c++20 -O3 -Icpp/include cpp/src/*.cpp -o /tmp/tinylab_cli && /tmp/tinylab_cli
 ```
+
+## Conventions
+
+[AGENTS.md](AGENTS.md) holds the rules for writing code here. The short version: comments
+are one line or absent, and reasoning lives in `docs/`, not scattered through source files.
 
 ## Licence
 

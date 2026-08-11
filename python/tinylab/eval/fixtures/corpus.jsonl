@@ -1,0 +1,31 @@
+{"doc_id": "espresso-1", "unit_id": "u-espresso", "text": "A shot that runs too fast tastes thin and sour because the water has not had contact time to dissolve the sugars. Grind finer before you touch the dose."}
+{"doc_id": "espresso-2", "unit_id": "u-espresso", "text": "Channeling happens when water finds a low resistance path through the puck. Distribute the grounds evenly and tamp level rather than hard."}
+{"doc_id": "espresso-3", "unit_id": "u-espresso", "text": "Keep the basket weight constant while you change one variable at a time, otherwise you cannot tell which change moved the taste."}
+{"doc_id": "bicycle-1", "unit_id": "u-bicycle", "text": "If the chain slips under load on the rear cassette, the culprit is usually a stretched chain that has worn the teeth into a hooked shape."}
+{"doc_id": "bicycle-2", "unit_id": "u-bicycle", "text": "Measure chain wear with a gauge every few hundred miles. Replacing a chain early is far cheaper than replacing the cassette and chainrings with it."}
+{"doc_id": "bicycle-3", "unit_id": "u-bicycle", "text": "Index the rear derailleur by setting the limit screws first, then adjusting cable tension one click at a time until shifts are crisp in both directions."}
+{"doc_id": "sourdough-1", "unit_id": "u-sourdough", "text": "A starter that doubles in four hours at room temperature and smells faintly of yogurt is ready to leaven bread."}
+{"doc_id": "sourdough-2", "unit_id": "u-sourdough", "text": "Dense crumb with a pale crust almost always means the dough was underproofed, not that the oven was too cool."}
+{"doc_id": "sourdough-3", "unit_id": "u-sourdough", "text": "Retarding shaped loaves overnight in the refrigerator develops flavour and makes the cold dough much easier to score cleanly."}
+{"doc_id": "monstera-1", "unit_id": "u-monstera", "text": "Yellow lower leaves on a monstera are the classic sign of overwatering. Let the top few inches of soil dry before watering again."}
+{"doc_id": "monstera-2", "unit_id": "u-monstera", "text": "New leaves emerge without splits when light is too low. Move the plant closer to a bright window rather than adding fertilizer."}
+{"doc_id": "sleep-1", "unit_id": "u-sleep", "text": "Bright light in the first hour after waking anchors the circadian clock and does more for morning alertness than an extra half hour in bed."}
+{"doc_id": "sleep-2", "unit_id": "u-sleep", "text": "Caffeine has a half life of about five hours, so an afternoon cup is still measurably present in the blood at bedtime."}
+{"doc_id": "sleep-3", "unit_id": "u-sleep", "text": "A cool dark room helps because core body temperature must fall for sleep to begin and stay consolidated through the night."}
+{"doc_id": "marathon-1", "unit_id": "u-marathon", "text": "Most of the weekly volume should be slow enough to hold a conversation. Hard days are only useful if the easy days are genuinely easy."}
+{"doc_id": "marathon-2", "unit_id": "u-marathon", "text": "Hitting the wall late in a race is glycogen depletion. Practise taking carbohydrate during long runs so the gut is trained for it."}
+{"doc_id": "marathon-3", "unit_id": "u-marathon", "text": "Taper by cutting volume while keeping some intensity in the final two weeks so the legs stay sharp without accumulating fatigue."}
+{"doc_id": "taxes-1", "unit_id": "u-taxes", "text": "Keep receipts for anything you intend to deduct as a business expense. A bank statement alone rarely satisfies an auditor asking what a charge was for."}
+{"doc_id": "taxes-2", "unit_id": "u-taxes", "text": "Quarterly estimated payments avoid an underpayment penalty when income arrives irregularly through the year rather than as a steady salary."}
+{"doc_id": "guitar-1", "unit_id": "u-guitar", "text": "Buzzing on the lower frets usually means the neck relief is too flat. Loosen the truss rod a quarter turn and let it settle overnight."}
+{"doc_id": "guitar-2", "unit_id": "u-guitar", "text": "Intonation is set at the saddles by comparing the fretted twelfth fret note against the harmonic and lengthening the string until they agree."}
+{"doc_id": "guitar-3", "unit_id": "u-guitar", "text": "Wipe the strings after playing. Most of what dulls a set is skin oil and sweat rather than the playing itself."}
+{"doc_id": "sqlite-1", "unit_id": "u-sqlite", "text": "Wrap many inserts in a single transaction. Committing per row forces a durable write each time and is the usual reason a bulk load crawls."}
+{"doc_id": "sqlite-2", "unit_id": "u-sqlite", "text": "Write ahead logging lets readers proceed while a writer is active, which removes most of the contention a busy single file database suffers."}
+{"doc_id": "sqlite-3", "unit_id": "u-sqlite", "text": "An index that does not cover the columns in the where clause will be ignored by the planner. Read the query plan before adding another one."}
+{"doc_id": "rust-1", "unit_id": "u-rust", "text": "The borrow checker rejects two mutable references to the same value at once. Restructure so ownership moves rather than reaching for a clone."}
+{"doc_id": "rust-2", "unit_id": "u-rust", "text": "Reference counted pointers with interior mutability are the escape hatch for shared state, and they move the check from compile time to run time."}
+{"doc_id": "beekeeping-1", "unit_id": "u-beekeeping", "text": "A hive that has lost its queen becomes noticeably louder and irritable within a day, and you will find no eggs in the brood frames."}
+{"doc_id": "beekeeping-2", "unit_id": "u-beekeeping", "text": "Leave enough honey stores through winter. Feeding sugar syrup late is a rescue measure and never as good as the colony's own reserves."}
+{"doc_id": "kimchi-1", "unit_id": "u-kimchi", "text": "Salting the cabbage draws out water so the leaves stay crisp through fermentation instead of turning limp in the jar."}
+{"doc_id": "kimchi-2", "unit_id": "u-kimchi", "text": "Keep everything below the brine. Anything exposed to air is where mould starts, and a weight solves it more reliably than stirring."}
