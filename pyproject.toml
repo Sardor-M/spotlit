@@ -14,6 +14,7 @@ teacher = []
 [project.scripts]
 # One entry point per pipeline stage. Later stages land with their ADRs.
 tinylab-eval = "tinylab.eval.cli:main"
+tinylab-build-lumen = "tinylab.data.build_lumen_set:main"
 
 [build-system]
 requires = ["hatchling"]
