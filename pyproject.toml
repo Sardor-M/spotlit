@@ -8,8 +8,8 @@ requires-python = ">=3.12,<3.14"
 dependencies = []
 
 [project.optional-dependencies]
-# Isolated so the training environment stays small.
-teacher = []
+# Isolated so the eval harness and the C++ side stay dependency-free.
+teacher = ["sentence-transformers>=3,<6"]
 
 [project.scripts]
 # One entry point per pipeline stage. Later stages land with their ADRs.

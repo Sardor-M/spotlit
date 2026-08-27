@@ -14,6 +14,18 @@ from .splits import Split, summarize
 DEFAULT_SET = Path(__file__).resolve().parent / "fixtures"
 SEALED_OPT_IN = "--yes-i-am-opening-the-sealed-set"
 
+# Named here rather than imported, so the stdlib-only path never pulls in torch.
+DENSE_SYSTEMS = ("teacher", "hybrid")
+
+
+def _make_retriever(system: str, seed: int, model: str):
+    if system in DENSE_SYSTEMS:
+        from .dense import build
+
+        return build(system, model)
+    factory = baselines.REGISTRY[system]
+    return factory(seed=seed) if system == "random" else factory()
+
 
 def _load(args: argparse.Namespace) -> EvalSet:
     return EvalSet.load(args.set)
@@ -48,15 +60,15 @@ def cmd_run(args: argparse.Namespace) -> int:
         return 2
 
     eval_set = _load(args)
-    factory = baselines.REGISTRY.get(args.system)
-    if factory is None:
+    try:
+        retriever = _make_retriever(args.system, args.seed, args.model)
+    except ImportError:
         print(
-            f"unknown system {args.system!r}; known: {', '.join(sorted(baselines.REGISTRY))}",
+            f"{args.system} needs the teacher extra: uv sync --extra teacher",
             file=sys.stderr,
         )
         return 2
 
-    retriever = factory(seed=args.seed) if args.system == "random" else factory()
     result = evaluate(retriever, eval_set, args.split, ks=DEFAULT_KS, top_k=DEFAULT_TOP_K)
 
     config = {
@@ -170,7 +182,10 @@ def build_parser() -> argparse.ArgumentParser:
     p_splits.set_defaults(func=cmd_splits)
 
     p_run = sub.add_parser("run", help="score a system and record it in the ledger")
-    p_run.add_argument("--system", required=True, choices=sorted(baselines.REGISTRY))
+    p_run.add_argument(
+        "--system", required=True, choices=sorted(baselines.REGISTRY) + list(DENSE_SYSTEMS)
+    )
+    p_run.add_argument("--model", default="BAAI/bge-small-en-v1.5", help="teacher model id")
     p_run.add_argument("--split", type=Split, default=Split.VAL, choices=list(Split))
     p_run.add_argument("--seed", type=int, default=0)
     p_run.add_argument("--notes", default="")

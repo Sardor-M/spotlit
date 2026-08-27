@@ -73,15 +73,28 @@ python3 -m tinylab.data.build_lumen_set \
 tinylab-eval --set data/lumen run --system bm25 --split val
 ```
 
-Incumbent to beat, val split, 27 queries over 389 passages:
+Val split, 27 queries over 389 passages:
 
 | System | nDCG@10 | recall@10 | MRR |
 | :--- | ---: | ---: | ---: |
 | random | 0.0000 | 0.0000 | 0.0038 |
 | lexical-overlap | 0.1976 | 0.2741 | 0.1832 |
 | bm25 | 0.2435 | 0.3407 | 0.2220 |
+| dense (teacher) | 0.3373 | 0.5333 | 0.3033 |
+| hybrid (RRF) | 0.3483 | 0.4963 | 0.3244 |
+
+`teacher` and `hybrid` need the optional extra and are imported lazily, so the stdlib-only
+path never pulls in torch:
+
+```sh
+uv sync --extra teacher
+PYTHONPATH=python .venv/bin/python -m tinylab.eval.cli \
+    --set data/lumen run --system hybrid --split val
+```
+
+See ADR-0003 for what these numbers do and do not establish.
 
 ## Next
 
-Phase 2 is the teacher and a dense-target dataset. Nothing in this directory changes for
-it — a new retriever gets registered and scored the same way.
+The student. It registers as another retriever and is scored by this same code path,
+against numbers recorded before it existed.

@@ -3,8 +3,8 @@
 Building very small models that run on device — in a browser tab, in a C++ binary, on a
 microcontroller — and releasing them as open weights.
 
-Early stage. The problem is chosen and the evaluation harness exists; the model does not
-yet.
+Early stage. The problem is chosen, the harness and encoder exist, and the teacher has
+been measured. The model does not exist yet.
 
 **Current target:** a tokenizer-free text embedding model — short text to a 64-256 dim
 vector, distilled from a strong sentence embedder, with hashed character n-grams instead of
@@ -101,7 +101,7 @@ Each phase ends with something measurable.
        |
   [4] input encoding                done — Python + C++, parity tested
        |
-  [5] teacher                       large model producing labels in bulk
+  [5] teacher                       done — premise confirmed, dense beats BM25
        |
   [6] student v0                    any learned model that beats the baseline
        |
