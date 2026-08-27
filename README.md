@@ -44,6 +44,7 @@ no ML framework on the deployment side. The domain is interchangeable; Go is jus
 tinylab/
 ├── AGENTS.md           rules for writing code here
 ├── python/tinylab/     training side
+│   ├── encoder.py          text -> hashed byte n-grams, frozen contract
 │   ├── eval/               evaluation harness, baselines, keep/discard gate
 │   ├── data/               dataset generation, teacher labelling
 │   ├── models/             network definitions
@@ -51,9 +52,11 @@ tinylab/
 │   └── export/             quantization, manifest + binary writer
 ├── cpp/                inference side, hand-written kernels, no dependencies
 │   ├── include/tinylab/
-│   └── src/
+│   ├── src/
+│   └── tests/              cross-language parity against tests/encoder_goldens.txt
 ├── web/                browser runtime (Worker + hand-written kernels)
 ├── models/             exported artifacts and manifests
+├── tests/              golden vectors shared by every language port
 └── docs/
     └── all/            private notes, gitignored, local only
 ```
@@ -96,20 +99,22 @@ Each phase ends with something measurable.
        |
   [3] trivial baseline              done on the fixture; pending a real corpus
        |
-  [4] teacher                       large model producing labels in bulk
+  [4] input encoding                done — Python + C++, parity tested
        |
-  [5] student v0                    any learned model that beats the baseline
+  [5] teacher                       large model producing labels in bulk
        |
-  [6] distill properly              dense targets, on-policy correction
+  [6] student v0                    any learned model that beats the baseline
        |
-  [7] quantize                      INT8 export against a hard byte budget
+  [7] distill properly              dense targets, on-policy correction
        |
-  [8] serve                         C++ runtime, then browser; latency measured
+  [8] quantize                      INT8 export against a hard byte budget
        |
-  [9] release                       open weights, licence, model card, embed example
+  [9] serve                         C++ runtime, then browser; latency measured
+       |
+ [10] release                       open weights, licence, model card, embed example
 ```
 
-Phase 2 before phase 4 is not a typo. If the harness comes after the first results, the
+Phase 2 before phase 5 is not a typo. If the harness comes after the first results, the
 metric gets chosen to fit numbers you have already seen.
 
 ## Getting started
@@ -125,9 +130,10 @@ PYTHONPATH=python python3 -m tinylab.eval.cli run --system bm25 --split val
 # training side (uv provisions its own interpreter)
 uv sync
 
-# inference side
+# inference side, including the encoder parity test
 cmake -S cpp -B cpp/build -DCMAKE_BUILD_TYPE=Release
 cmake --build cpp/build
+ctest --test-dir cpp/build --output-on-failure
 ./cpp/build/tinylab_cli
 ```
 
