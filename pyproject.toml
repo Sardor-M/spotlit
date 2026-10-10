@@ -9,13 +9,18 @@ dependencies = []
 
 [project.optional-dependencies]
 # Isolated so the eval harness and the C++ side stay dependency-free.
-teacher = ["sentence-transformers>=3,<6"]
+teacher = ["sentence-transformers>=3,<6", "datasets>=3,<5"]
+# Training on Apple Silicon; see docs/all/learnings/02-mlx/.
+train = ["mlx>=0.20", "numpy>=1.26"]
 
 [project.scripts]
 # One entry point per pipeline stage. Later stages land with their ADRs.
 tinylab-eval = "tinylab.eval.cli:main"
 tinylab-build-lumen = "tinylab.data.build_lumen_set:main"
 tinylab-encoder-goldens = "tinylab.data.make_encoder_goldens:main"
+tinylab-build-training-set = "tinylab.data.build_training_set:main"
+tinylab-label = "tinylab.data.label_with_teacher:main"
+tinylab-train = "tinylab.train.distill:main"
 
 [build-system]
 requires = ["hatchling"]

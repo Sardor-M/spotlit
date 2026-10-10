@@ -15,10 +15,22 @@ DEFAULT_SET = Path(__file__).resolve().parent / "fixtures"
 SEALED_OPT_IN = "--yes-i-am-opening-the-sealed-set"
 
 # Named here rather than imported, so the stdlib-only path never pulls in torch.
-DENSE_SYSTEMS = ("teacher", "hybrid")
+DENSE_SYSTEMS = ("teacher", "hybrid", "student", "student-hybrid")
 
 
-def _make_retriever(system: str, seed: int, model: str):
+def _make_retriever(system: str, seed: int, model: str, checkpoint=None):
+    if system.startswith("student"):
+        from .student import StudentRetriever
+
+        if checkpoint is None:
+            raise ValueError("--checkpoint is required for the student")
+        if system == "student":
+            return StudentRetriever(checkpoint)
+        from .dense import RRFRetriever
+
+        return RRFRetriever(
+            [baselines.BM25Retriever(), StudentRetriever(checkpoint)], label="bm25+student"
+        )
     if system in DENSE_SYSTEMS:
         from .dense import build
 
@@ -61,10 +73,10 @@ def cmd_run(args: argparse.Namespace) -> int:
 
     eval_set = _load(args)
     try:
-        retriever = _make_retriever(args.system, args.seed, args.model)
+        retriever = _make_retriever(args.system, args.seed, args.model, args.checkpoint)
     except ImportError:
         print(
-            f"{args.system} needs the teacher extra: uv sync --extra teacher",
+            f"{args.system} needs its extra: uv sync --extra teacher --extra train",
             file=sys.stderr,
         )
         return 2
@@ -75,6 +87,7 @@ def cmd_run(args: argparse.Namespace) -> int:
         "system": retriever.name,
         "split": str(args.split),
         "eval_set": str(args.set),
+        "checkpoint": str(args.checkpoint) if args.checkpoint else None,
         "n_docs": result.n_docs,
         "n_queries": result.n_queries,
         "top_k": DEFAULT_TOP_K,
@@ -186,6 +199,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--system", required=True, choices=sorted(baselines.REGISTRY) + list(DENSE_SYSTEMS)
     )
     p_run.add_argument("--model", default="BAAI/bge-small-en-v1.5", help="teacher model id")
+    p_run.add_argument("--checkpoint", type=Path, help="student checkpoint stem")
     p_run.add_argument("--split", type=Split, default=Split.VAL, choices=list(Split))
     p_run.add_argument("--seed", type=int, default=0)
     p_run.add_argument("--notes", default="")
