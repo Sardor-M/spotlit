@@ -13,15 +13,38 @@ import mlx.optimizers as optim
 import numpy as np
 from mlx.utils import tree_flatten
 
-from ..data.features import pad_batch, sparse_of
+from ..data.features import FeatureCache, pad_batch, sparse_of
 from ..data.label_with_teacher import load_texts
 from ..encoder import EncoderSpec
-from ..models.student import CONFIGS, Student, relational_loss
+from ..models.student import CONFIGS, LOSSES, Student
+
+TOP_K = 10
 
 
 def batch_arrays(texts: list[str], spec: EncoderSpec):
     buckets, counts, mask = pad_batch([sparse_of(text, spec) for text in texts])
     return mx.array(buckets), mx.array(counts), mx.array(mask)
+
+
+def embed(model: Student, texts: list[str], spec: EncoderSpec, batch: int = 512) -> np.ndarray:
+    chunks = []
+    for start in range(0, len(texts), batch):
+        out = model(*batch_arrays(texts[start : start + batch], spec))
+        mx.eval(out)
+        chunks.append(np.array(out))
+    return np.concatenate(chunks, axis=0)
+
+
+def fidelity(student: np.ndarray, teacher: np.ndarray) -> dict:
+    """Agreement with the teacher on held-out text: pair correlation and top-10 neighbour overlap."""
+    off = ~np.eye(len(teacher), dtype=bool)
+    s_sim, t_sim = student @ student.T, teacher @ teacher.T
+    pearson = float(np.corrcoef(s_sim[off], t_sim[off])[0, 1])
+    s_sim[~off] = t_sim[~off] = -np.inf
+    s_top = np.argpartition(-s_sim, TOP_K, axis=1)[:, :TOP_K]
+    t_top = np.argpartition(-t_sim, TOP_K, axis=1)[:, :TOP_K]
+    overlap = np.mean([len(set(a) & set(b)) for a, b in zip(s_top, t_top)]) / TOP_K
+    return {"pearson": round(pearson, 4), "top10_overlap": round(float(overlap), 4)}
 
 
 def train(args: argparse.Namespace) -> dict:
@@ -32,14 +55,21 @@ def train(args: argparse.Namespace) -> dict:
     teacher = np.load(args.teacher).astype(np.float32)
     if len(texts) > len(teacher):
         texts = texts[: len(teacher)]
-    print(f"{len(texts):,} passages, teacher {teacher.shape}, config {args.config}")
+    cache_path = args.passages.with_name(f"features-{config.num_buckets}.npz")
+    features = FeatureCache.load_or_build(cache_path, texts, spec)
+    held_texts, texts = texts[-args.holdout :], texts[: -args.holdout]
+    held_teacher = teacher[len(texts) : len(texts) + args.holdout]
+    print(f"{len(texts):,} passages (+{args.holdout:,} held out), config {args.config}, loss {args.loss}")
     print(f"  {config.describe()}")
 
     model = Student(config)
     optimizer = optim.AdamW(learning_rate=args.learning_rate, weight_decay=args.weight_decay)
 
+    objective = LOSSES[args.loss]
+    options = {"temperature": args.temperature} if args.loss == "listwise" else {}
+
     def loss_fn(model, buckets, counts, mask, target):
-        return relational_loss(model(buckets, counts, mask), target)
+        return objective(model(buckets, counts, mask), target, **options)
 
     step_fn = nn.value_and_grad(model, loss_fn)
     rng = np.random.default_rng(args.seed)
@@ -49,7 +79,7 @@ def train(args: argparse.Namespace) -> dict:
     start = time.time()
     for step in range(1, args.steps + 1):
         rows = rng.integers(0, len(texts), size=args.batch_size)
-        buckets, counts, mask = batch_arrays([texts[row] for row in rows], spec)
+        buckets, counts, mask = (mx.array(part) for part in features.batch(rows))
         target = mx.array(teacher[rows])
 
         loss, grads = step_fn(model, buckets, counts, mask, target)
@@ -59,11 +89,21 @@ def train(args: argparse.Namespace) -> dict:
         value = float(loss)
         running = value if running is None else 0.98 * running + 0.02 * value
         if step % args.log_every == 0 or step == 1:
+            held = fidelity(embed(model, held_texts, spec), held_teacher)
             rate = step * args.batch_size / (time.time() - start)
-            print(f"  step {step:>6}  loss {running:.5f}  {rate:8.0f} texts/s")
-            history.append({"step": step, "loss": running})
+            print(
+                f"  step {step:>6}  loss {running:.5f}  held-out pearson {held['pearson']:.4f}"
+                f"  top10 {held['top10_overlap']:.3f}  {rate:6.0f} texts/s"
+            )
+            history.append({"step": step, "loss": running, **held})
 
-    return {"model": model, "config": config, "history": history, "final_loss": running}
+    return {
+        "model": model,
+        "config": config,
+        "history": history,
+        "final_loss": running,
+        "fidelity": history[-1],
+    }
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -74,6 +114,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", type=Path, default=Path("checkpoints"))
     parser.add_argument("--steps", type=int, default=4000)
     parser.add_argument("--batch-size", type=int, default=256)
+    parser.add_argument("--loss", default="listwise", choices=sorted(LOSSES))
+    parser.add_argument("--temperature", type=float, default=0.05, help="listwise loss only")
+    parser.add_argument("--holdout", type=int, default=2048, help="last N passages, never trained on")
     parser.add_argument("--learning-rate", type=float, default=3e-3)
     parser.add_argument("--weight-decay", type=float, default=1e-5)
     parser.add_argument("--seed", type=int, default=0)
@@ -94,6 +137,10 @@ def main(argv: list[str] | None = None) -> int:
                 "steps": args.steps,
                 "batch_size": args.batch_size,
                 "learning_rate": args.learning_rate,
+                "loss": args.loss,
+                "temperature": args.temperature if args.loss == "listwise" else None,
+                "holdout": args.holdout,
+                "fidelity": result["fidelity"],
                 "seed": args.seed,
                 "final_loss": result["final_loss"],
                 "history": result["history"],

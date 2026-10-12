@@ -46,6 +46,61 @@ def sparse_of(text: str, spec: EncoderSpec = SPEC_V1) -> tuple[np.ndarray, np.nd
     return buckets, counts[buckets]
 
 
+class FeatureCache:
+    """Every passage's sparse features in CSR form, built once per bucket count."""
+
+    def __init__(self, buckets: np.ndarray, counts: np.ndarray, offsets: np.ndarray):
+        self.buckets, self.counts, self.offsets = buckets, counts, offsets
+
+    def __len__(self) -> int:
+        return len(self.offsets) - 1
+
+    @classmethod
+    def build(cls, texts: list[str], spec: EncoderSpec = SPEC_V1) -> "FeatureCache":
+        from concurrent.futures import ProcessPoolExecutor
+        from functools import partial
+
+        if spec.num_buckets > 1 << 16:
+            raise ValueError("bucket ids are stored as uint16")
+        with ProcessPoolExecutor() as pool:
+            sparse = list(pool.map(partial(sparse_of, spec=spec), texts, chunksize=2048))
+        offsets = np.zeros(len(sparse) + 1, dtype=np.int64)
+        offsets[1:] = np.cumsum([len(buckets) for buckets, _ in sparse])
+        buckets = np.concatenate([b for b, _ in sparse]).astype(np.uint16)
+        counts = np.concatenate([c for _, c in sparse]).astype(np.int16)
+        return cls(buckets, counts, offsets)
+
+    @classmethod
+    def load_or_build(cls, path, texts: list[str], spec: EncoderSpec) -> "FeatureCache":
+        from pathlib import Path
+
+        import hashlib
+
+        path = Path(path)
+        digest = hashlib.sha256("\n".join(texts).encode()).hexdigest()[:16]
+        if path.exists():
+            data = np.load(path)
+            if str(data["digest"]) == digest:
+                return cls(data["buckets"], data["counts"], data["offsets"])
+        cache = cls.build(texts, spec)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        np.savez(
+            path, buckets=cache.buckets, counts=cache.counts, offsets=cache.offsets, digest=digest
+        )
+        return cache
+
+    def batch(self, rows) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        return pad_batch(
+            [
+                (
+                    self.buckets[self.offsets[row] : self.offsets[row + 1]].astype(np.int32),
+                    self.counts[self.offsets[row] : self.offsets[row + 1]],
+                )
+                for row in rows
+            ]
+        )
+
+
 def pad_batch(
     sparse: list[tuple[np.ndarray, np.ndarray]]
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
