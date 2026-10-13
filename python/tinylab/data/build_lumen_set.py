@@ -139,6 +139,11 @@ def query_text(heading: str) -> str:
     return NUMBER_PREFIX_RE.sub("", heading).strip(" :-—")
 
 
+def query_key(heading: str) -> str:
+    """Identity of the query a heading becomes, so numbered repeats count as one."""
+    return query_text(heading).lower().strip(" :?")
+
+
 def is_usable_query(heading: str) -> bool:
     words = heading.split()
     if not MIN_HEADING_WORDS <= len(words) <= MAX_HEADING_WORDS:
@@ -187,14 +192,13 @@ def build(source: Path, out: Path, skip_patterns: tuple[str, ...]) -> dict:
     by_id = {section.doc_id: section for section in deduped}
     heading_counts: dict[str, int] = {}
     for section in deduped:
-        key = section.heading.lower().strip(" :?")
+        key = query_key(section.heading)
         heading_counts[key] = heading_counts.get(key, 0) + 1
 
     queries = []
     for section in deduped:
-        key = section.heading.lower().strip(" :?")
         text = query_text(section.heading)
-        if heading_counts[key] > 1 or not is_usable_query(text):
+        if heading_counts[query_key(section.heading)] > 1 or not is_usable_query(text):
             continue
         relevant = {section.doc_id: 2}
         for doc_id in section.descendants:
