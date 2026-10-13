@@ -41,8 +41,14 @@ class StudentRetriever:
         mx.set_cache_limit(MLX_CACHE_LIMIT)
 
         meta = json.loads(self.checkpoint.with_name(self.checkpoint.name + ".json").read_text(encoding="utf-8"))
-        config = StudentConfig(**meta["config"])
-        model = Student(config)
+        if meta["config"].get("kind") == "contextual":
+            from ..models.contextual import ContextualConfig, ContextualStudent
+
+            config = ContextualConfig(**meta["config"])
+            model = ContextualStudent(config)
+        else:
+            config = StudentConfig(**meta["config"])
+            model = Student(config)
         weights = mx.load(str(self.checkpoint.with_name(self.checkpoint.name + ".safetensors")))
         model.update(tree_unflatten(list(weights.items())))
         mx.eval(model.parameters())
@@ -58,6 +64,10 @@ class StudentRetriever:
         from ..data.features import PAD_MULTIPLE, pad_batch, sparse_of
 
         model = self._load()
+        if getattr(model.config, "kind", "") == "contextual":
+            from ..models.contextual import embed
+
+            return embed(model, texts, BATCH)
         chunks = []
         for start in range(0, len(texts), BATCH):
             window = texts[start : start + BATCH]

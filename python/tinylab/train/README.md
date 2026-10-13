@@ -32,6 +32,19 @@ caffeinate -i nice -n 10 uv run tinylab-fit --tag design \
 About a minute; writes `checkpoints/student-linear-6144x320-<tag>`. Without `--source` it
 fits the defaults (tech + stats).
 
+## Contextual student (ADR-0011)
+
+Hashed word pieces read in order by a small transformer, distilled by cosine to the
+teacher's vectors on tech + stats + design text. Two probe sizes: `S` (1.9M params, 2 MB at
+INT8) and `M` (7.5M). The first run per size builds word caches beside each jsonl.
+
+```sh
+caffeinate -i nice -n 10 uv run tinylab-train-contextual --size S --tag probe \
+    2>&1 | tee runs/ctx-S-probe.log
+```
+
+Writes `checkpoints/student-ctx-S-seed0-probe`; score it like any student checkpoint.
+
 ## Train (gradient)
 
 From the repository root, plugged in, nothing else heavy running:

@@ -23,6 +23,7 @@ tinylab-build-technical-set = "tinylab.data.build_technical_set:main"
 tinylab-build-design-set = "tinylab.data.build_design_set:main"
 tinylab-label = "tinylab.data.label_with_teacher:main"
 tinylab-train = "tinylab.train.distill:main"
+tinylab-train-contextual = "tinylab.train.contextual:main"
 tinylab-fit = "tinylab.train.fit_linear:main"
 
 [build-system]
