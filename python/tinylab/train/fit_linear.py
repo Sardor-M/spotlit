@@ -61,13 +61,13 @@ def fit(args: argparse.Namespace) -> tuple[np.ndarray, StudentConfig, dict]:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="tinylab-fit", description=__doc__)
-    parser.add_argument("--buckets", type=int, default=4096)
+    parser.add_argument("--buckets", type=int, default=6144)
     parser.add_argument("--components", type=int, default=0, help="0 = as many as the budget allows")
-    parser.add_argument("--budget", type=int, default=393_216, help="table parameters")
+    parser.add_argument("--budget", type=int, default=1_966_080, help="table parameters, ADR-0008")
     parser.add_argument(
         "--source", type=Path, action="append", default=[], help="labelled jsonl; repeatable"
     )
-    parser.add_argument("--ridge", type=float, default=1e-2, help="relative to the mean feature energy")
+    parser.add_argument("--ridge", type=float, default=1e-3, help="relative to the mean feature energy")
     parser.add_argument("--out", type=Path, default=Path("checkpoints"))
     parser.add_argument("--tag", default="")
     args = parser.parse_args(argv)

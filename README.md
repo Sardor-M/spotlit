@@ -3,12 +3,13 @@
 Building very small models that run on device — in a browser tab, in a C++ binary, on a
 microcontroller — and releasing them as open weights.
 
-Early stage. The problem is chosen, the harness and encoder exist, and the teacher has
-been measured. The model does not exist yet.
+In development. The harness, encoder and teacher measurements exist; the student is a
+closed-form linear fit that beats BM25 in fusion on development queries but has not yet
+passed the evaluation gate. Nothing is released.
 
-**Current target:** a tokenizer-free text embedding model — short text to a 64-256 dim
+**Current target:** a tokenizer-free text embedding model — short text to a ~320 dim
 vector, distilled from a strong sentence embedder, with hashed character n-grams instead of
-a vocabulary file. 500 KB INT8, hard budget. First consumer is hybrid retrieval.
+a vocabulary file. 2 MB INT8, hard budget. First consumer is hybrid retrieval.
 
 ## The idea
 
@@ -25,7 +26,7 @@ no ML framework on the deployment side. The domain is interchangeable; Go is jus
    large, slow, accurate          small, fast, close enough   what ships
 
    +-------------------+          +-----------------+         +----------------+
-   |  1M-1B params     |          |  ~100K params   |         |  ~100-500 KB   |
+   |  1M-1B params     |          |  ~100K-2M params|         |  ~0.1-2 MB     |
    |  megabytes        |  ---->   |  fixed shape    |  ---->  |  INT8 weights  |
    |  needs a runtime  | distill  |  no framework   | quantize|  + manifest    |
    +-------------------+          +-----------------+         +----------------+
