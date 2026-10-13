@@ -25,6 +25,7 @@ tinylab-label = "tinylab.data.label_with_teacher:main"
 tinylab-train = "tinylab.train.distill:main"
 tinylab-train-contextual = "tinylab.train.contextual:main"
 tinylab-fit = "tinylab.train.fit_linear:main"
+tinylab-export = "tinylab.export.linear:main"
 
 [build-system]
 requires = ["hatchling"]
