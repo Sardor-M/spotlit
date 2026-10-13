@@ -21,6 +21,8 @@ class StudentConfig:
     @property
     def parameters(self) -> int:
         table = self.num_buckets * self.d_table
+        if not self.hidden:
+            return table
         mlp = (
             self.d_table * self.hidden + self.hidden
             + self.hidden * self.hidden + self.hidden
@@ -40,28 +42,35 @@ class StudentConfig:
 
 CONFIG_A = StudentConfig(num_buckets=4096, d_table=64)
 CONFIG_B = StudentConfig(num_buckets=16384, d_table=16)
-CONFIGS = {"A": CONFIG_A, "B": CONFIG_B}
+# Static embedding, no MLP: wide pooled vectors keep the lexical signal (ADR-0006 amendment 3).
+CONFIG_C = StudentConfig(num_buckets=1024, d_table=384, hidden=0, d_out=384)
+CONFIGS = {"A": CONFIG_A, "B": CONFIG_B, "C": CONFIG_C}
 
 
 class Student(nn.Module):
-    """Hashed n-gram table, mean-pooled, through a small MLP to a normalized vector."""
+    """Hashed n-gram table, mean-pooled, through an optional small MLP to a normalized vector."""
 
     def __init__(self, config: StudentConfig = CONFIG_A):
         super().__init__()
         self.config = config
         self.table = nn.Embedding(config.num_buckets, config.d_table)
-        self.fc1 = nn.Linear(config.d_table, config.hidden)
-        self.fc2 = nn.Linear(config.hidden, config.hidden)
-        self.fc3 = nn.Linear(config.hidden, config.d_out)
+        if config.hidden:
+            self.fc1 = nn.Linear(config.d_table, config.hidden)
+            self.fc2 = nn.Linear(config.hidden, config.hidden)
+            self.fc3 = nn.Linear(config.hidden, config.d_out)
+        elif config.d_out != config.d_table:
+            raise ValueError("without an MLP, d_out must equal d_table")
 
     def __call__(self, buckets: mx.array, counts: mx.array, mask: mx.array) -> mx.array:
         weights = (counts * mask)[..., None]
         pooled = (self.table(buckets) * weights).sum(axis=1)
         pooled = pooled / mx.maximum(mask.sum(axis=1, keepdims=True), 1.0)
 
-        hidden = nn.relu(self.fc1(pooled))
-        hidden = nn.relu(self.fc2(hidden))
-        out = self.fc3(hidden)
+        out = pooled
+        if self.config.hidden:
+            hidden = nn.relu(self.fc1(pooled))
+            hidden = nn.relu(self.fc2(hidden))
+            out = self.fc3(hidden)
         return out / mx.maximum(mx.linalg.norm(out, axis=-1, keepdims=True), EPS)
 
 

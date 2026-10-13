@@ -1,4 +1,4 @@
-"""Baselines to beat: random floor, lexical overlap, BM25 incumbent."""
+"""Baselines to beat: random floor, lexical overlap, BM25 incumbent, and the student's raw input."""
 
 from __future__ import annotations
 
@@ -7,6 +7,7 @@ import random
 import re
 from collections import Counter
 
+from ..encoder import features
 from .schema import Doc
 
 TOKEN_RE = re.compile(r"[a-z0-9]+")
@@ -103,8 +104,44 @@ class BM25Retriever:
         return _rank_by_score(scores, top_k)
 
 
+class NgramCosineRetriever:
+    """Cosine over the student's own input, signed hashed byte n-gram counts, optionally IDF-weighted."""
+
+    def __init__(self, idf: bool = False) -> None:
+        self.name = "ngram-tfidf" if idf else "ngram-cosine"
+        self.use_idf = idf
+        self._idf: dict[int, float] = {}
+        self._vectors: dict[str, dict[int, float]] = {}
+
+    def _normalized(self, counts: dict[int, int]) -> dict[int, float]:
+        weighted = {bucket: count * self._idf.get(bucket, 1.0) for bucket, count in counts.items()}
+        norm = math.sqrt(sum(value * value for value in weighted.values())) or 1.0
+        return {bucket: value / norm for bucket, value in weighted.items()}
+
+    def index(self, docs: list[Doc]) -> None:
+        raw = {doc.doc_id: dict(features(doc.text)) for doc in docs}
+        if self.use_idf:
+            document_frequency = Counter(bucket for counts in raw.values() for bucket in counts)
+            n_docs = len(raw)
+            self._idf = {
+                bucket: math.log((n_docs + 1) / (df + 1)) + 1.0
+                for bucket, df in document_frequency.items()
+            }
+        self._vectors = {doc_id: self._normalized(counts) for doc_id, counts in raw.items()}
+
+    def rank(self, query_text: str, top_k: int) -> list[str]:
+        query = self._normalized(dict(features(query_text)))
+        scores = {
+            doc_id: sum(value * vector.get(bucket, 0.0) for bucket, value in query.items())
+            for doc_id, vector in self._vectors.items()
+        }
+        return _rank_by_score(scores, top_k)
+
+
 REGISTRY = {
     "random": RandomRetriever,
     "lexical-overlap": LexicalOverlapRetriever,
     "bm25": BM25Retriever,
+    "ngram-cosine": NgramCosineRetriever,
+    "ngram-tfidf": lambda: NgramCosineRetriever(idf=True),
 }
