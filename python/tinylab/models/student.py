@@ -8,6 +8,7 @@ import mlx.core as mx
 import mlx.nn as nn
 
 EPS = 1e-8
+MLX_CACHE_LIMIT = 1 << 30
 
 
 @dataclass(frozen=True, slots=True)

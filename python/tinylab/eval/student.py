@@ -29,7 +29,9 @@ class StudentRetriever:
         from mlx.utils import tree_unflatten
 
         from ..encoder import EncoderSpec
-        from ..models.student import Student, StudentConfig
+        from ..models.student import MLX_CACHE_LIMIT, Student, StudentConfig
+
+        mx.set_cache_limit(MLX_CACHE_LIMIT)
 
         meta = json.loads(self.checkpoint.with_suffix(".json").read_text(encoding="utf-8"))
         config = StudentConfig(**meta["config"])
@@ -46,13 +48,14 @@ class StudentRetriever:
         import mlx.core as mx
         import numpy as np
 
-        from ..data.features import pad_batch, sparse_of
+        from ..data.features import PAD_MULTIPLE, pad_batch, sparse_of
 
         model = self._load()
         chunks = []
         for start in range(0, len(texts), BATCH):
             window = texts[start : start + BATCH]
-            buckets, counts, mask = pad_batch([sparse_of(text, self._spec) for text in window])
+            sparse = [sparse_of(text, self._spec) for text in window]
+            buckets, counts, mask = pad_batch(sparse, PAD_MULTIPLE)
             out = model(mx.array(buckets), mx.array(counts), mx.array(mask))
             mx.eval(out)
             chunks.append(np.array(out))

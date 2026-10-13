@@ -8,7 +8,8 @@ from pathlib import Path
 
 import numpy as np
 
-from ..eval.dense import DEFAULT_TEACHER
+from ..eval.dense import DEFAULT_TEACHER, QUERY_PREFIX
+from ..gpu_lock import exclusive_gpu
 
 
 def load_texts(path: Path) -> list[str]:
@@ -23,6 +24,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--model", default=DEFAULT_TEACHER)
     parser.add_argument("--batch-size", type=int, default=256)
     parser.add_argument("--limit", type=int, default=0, help="label only the first N passages")
+    parser.add_argument("--query-prefix", action="store_true", help="embed as retrieval queries")
     args = parser.parse_args(argv)
 
     from sentence_transformers import SentenceTransformer
@@ -32,17 +34,21 @@ def main(argv: list[str] | None = None) -> int:
         texts = texts[: args.limit]
     print(f"labelling {len(texts):,} passages with {args.model}")
 
-    model = SentenceTransformer(args.model)
-    vectors = model.encode(
-        texts,
-        batch_size=args.batch_size,
-        normalize_embeddings=True,
-        convert_to_numpy=True,
-        show_progress_bar=True,
-    ).astype(np.float16)
+    prefix = QUERY_PREFIX if args.query_prefix else ""
+    with exclusive_gpu(f"tinylab-label {args.passages}"):
+        model = SentenceTransformer(args.model)
+        vectors = model.encode(
+            [prefix + text for text in texts],
+            batch_size=args.batch_size,
+            normalize_embeddings=True,
+            convert_to_numpy=True,
+            show_progress_bar=True,
+        ).astype(np.float16)
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    np.save(args.out, vectors)
+    partial = args.out.with_name(args.out.stem + ".partial.npy")
+    np.save(partial, vectors)
+    partial.rename(args.out)
     print(f"wrote {args.out} {vectors.shape} ({vectors.nbytes / 1e6:.0f} MB)")
     return 0
 
