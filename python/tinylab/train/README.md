@@ -1,9 +1,37 @@
 # tinylab.train
 
-Distills the teacher into the student (ADR-0006). One GPU job at a time: a second
-`tinylab-train` or `tinylab-label` refuses to start while one is running.
+Distills the teacher into the student (ADR-0006). The working student is the closed-form
+linear fit (`tinylab-fit`); `tinylab-train` is the gradient path. One GPU job at a time: a
+second `tinylab-fit`, `tinylab-train` or `tinylab-label` refuses to start while one is running.
 
-## Run
+## Training text
+
+Labelled jsonl files in `data/train/`, teacher vectors beside each as `<stem>-teacher.npy`.
+Repositories for the design set are cloned into `data/sources/` and licence-checked first
+(ADR-0007).
+
+```sh
+uv run tinylab-build-technical-set --forums stats --name stats
+uv run tinylab-build-design-set data/sources/rfcs data/sources/enhancements \
+    data/sources/proposal data/sources/swift-evolution data/sources/website
+caffeinate -i uv run tinylab-label --passages data/train/design-passages.jsonl \
+    --out data/train/design-passages-teacher.npy
+caffeinate -i uv run tinylab-label --passages data/train/design-titles.jsonl \
+    --out data/train/design-titles-teacher.npy --query-prefix
+```
+
+## Fit
+
+```sh
+caffeinate -i nice -n 10 uv run tinylab-fit --tag design \
+    --source data/train/tech-passages.jsonl --source data/train/tech-titles.jsonl \
+    --source data/train/design-passages.jsonl --source data/train/design-titles.jsonl
+```
+
+About a minute; writes `checkpoints/student-linear-6144x320-<tag>`. Without `--source` it
+fits the defaults (tech + stats).
+
+## Train (gradient)
 
 From the repository root, plugged in, nothing else heavy running:
 
@@ -29,7 +57,10 @@ mem 0.01+0.52 GB (peak 0.17)  elapsed 0:00:08  left 0:00:00
 
 ## Score
 
+Development decisions use the v2 dev split (`--split train`); val is for the gate only
+(ADR-0010).
+
 ```sh
-uv run tinylab-eval --set data/lumen run --system student-hybrid \
-    --checkpoint checkpoints/student-A-seed0-q50 --split val --notes "..."
+uv run tinylab-eval --set data/lumen-v2 run --system student-hybrid \
+    --checkpoint checkpoints/student-linear-6144x320-design --split train --notes "..."
 ```
