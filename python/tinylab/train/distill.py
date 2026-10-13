@@ -75,6 +75,18 @@ class TextPool:
         return np.asarray(self.teacher[rows], dtype=np.float32)
 
 
+def parse_mix(spec: str) -> tuple[Path, float]:
+    """`path:fraction`; the teacher vectors live beside it as `<stem>-teacher.npy`."""
+    path, _, fraction = spec.rpartition(":")
+    if not path:
+        raise ValueError(f"--mix expects PATH:FRACTION, got {spec!r}")
+    return Path(path), float(fraction)
+
+
+def teacher_for(path: Path) -> Path:
+    return path.with_name(f"{path.stem}-teacher.npy")
+
+
 def inverse_document_frequency(features: FeatureCache, num_buckets: int) -> np.ndarray:
     """IDF per bucket; a bucket occurs at most once per text in the sparse cache."""
     document_frequency = np.bincount(np.asarray(features.buckets), minlength=num_buckets)
@@ -111,10 +123,18 @@ def train(args: argparse.Namespace) -> dict:
     if args.queries:
         queries = TextPool(args.queries, args.query_teacher, spec, args.query_holdout)
     n_query = round(args.batch_size * args.query_fraction) if queries else 0
+    mixes = [
+        (path, TextPool(path, teacher_for(path), spec, 0), round(args.batch_size * fraction))
+        for path, fraction in map(parse_mix, args.mix)
+    ]
+    n_mix = sum(count for _, _, count in mixes)
+    if n_query + n_mix >= args.batch_size:
+        raise ValueError("queries and --mix fractions must leave room for MS MARCO passages")
     idf = inverse_document_frequency(passages.features, spec.num_buckets) if args.lexical_weight else None
     print(
         f"{passages.train_count:,} passages (+{args.holdout:,} held out)"
         + (f", {queries.train_count:,} queries, {n_query}/{args.batch_size} per batch" if queries else "")
+        + "".join(f", {pool.train_count:,} {path.stem}, {count}/{args.batch_size} per batch" for path, pool, count in mixes)
         + f", config {args.config}, loss {args.loss}, lexical weight {args.lexical_weight}"
         + f", {args.steps:,} steps",
         flush=True,
@@ -138,12 +158,16 @@ def train(args: argparse.Namespace) -> dict:
     running = None
     start = time.time()
     for step in range(1, args.steps + 1):
-        rows = rng.integers(0, passages.train_count, size=args.batch_size - n_query)
+        rows = rng.integers(0, passages.train_count, size=args.batch_size - n_query - n_mix)
         sparse, target = passages.features.sparse(rows), passages.targets(rows)
         if n_query:
             query_rows = rng.integers(0, queries.train_count, size=n_query)
             sparse += queries.features.sparse(query_rows)
             target = np.concatenate([target, queries.targets(query_rows)])
+        for _, pool, count in mixes:
+            mix_rows = rng.integers(0, pool.train_count, size=count)
+            sparse += pool.features.sparse(mix_rows)
+            target = np.concatenate([target, pool.targets(mix_rows)])
         buckets, counts, mask = (mx.array(part) for part in pad_batch(sparse, PAD_MULTIPLE))
         similarity = target @ target.T
         if idf is not None:
@@ -208,6 +232,7 @@ def save(result: dict, args: argparse.Namespace) -> Path:
         "holdout": args.holdout,
         "queries": str(args.queries) if args.queries else None,
         "query_fraction": args.query_fraction if args.queries else 0.0,
+        "mix": [[str(path), fraction] for path, fraction in map(parse_mix, args.mix)],
         "fidelity": result["fidelity"],
         "seed": args.seed,
         "seconds": result["seconds"],
@@ -234,6 +259,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--query-teacher", type=Path, default=Path("data/train/queries-teacher.npy"))
     parser.add_argument("--query-fraction", type=float, default=0.5)
     parser.add_argument("--query-holdout", type=int, default=1024)
+    parser.add_argument(
+        "--mix", action="append", default=[], metavar="PATH:FRACTION",
+        help="share of each batch drawn from another labelled jsonl; repeatable",
+    )
     parser.add_argument(
         "--lexical-weight", type=float, default=0.0, help="share of n-gram TF-IDF in the target similarity"
     )
