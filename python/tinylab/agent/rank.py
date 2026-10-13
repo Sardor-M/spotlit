@@ -13,7 +13,7 @@ import numpy as np
 
 from ..eval.baselines import BM25Retriever
 
-KS = (1, 5, 10, 20, 50)
+KS = (1, 5, 10, 20, 50, 100, 200)
 RRF_K = 60
 FUSION_DEPTH = 100
 CHARS_PER_TOKEN = 4
