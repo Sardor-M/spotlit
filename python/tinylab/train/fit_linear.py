@@ -16,6 +16,7 @@ from .distill import TextPool, teacher_for
 
 TEACHER_DIM = 384
 ROWS_PER_CHUNK = 40_000_000
+SOURCES = ("tech", "stats")
 
 
 def pooled(pool: TextPool, rows: np.ndarray, buckets: int) -> np.ndarray:
@@ -72,7 +73,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--tag", default="")
     args = parser.parse_args(argv)
     if not args.source:
-        args.source = [Path("data/train/tech-passages.jsonl"), Path("data/train/tech-titles.jsonl")]
+        args.source = [Path(f"data/train/{name}-{kind}.jsonl") for name in SOURCES for kind in ("passages", "titles")]
 
     import mlx.core as mx
 
