@@ -57,14 +57,15 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="tinylab-build-technical-set", description=__doc__)
     parser.add_argument("--forums", default=",".join(FORUMS))
     parser.add_argument("--out-dir", type=Path, default=Path("data/train"))
+    parser.add_argument("--name", default="tech", help="writes <name>-passages.jsonl and <name>-titles.jsonl")
     parser.add_argument("--seed", type=int, default=0)
     args = parser.parse_args(argv)
 
     forums = tuple(name.strip() for name in args.forums.split(",") if name.strip())
     print(f"downloading CQADupStack: {', '.join(forums)}", flush=True)
     kept = pairs(forums, args.seed)
-    write(args.out_dir / "tech-passages.jsonl", [{"doc_id": d, "text": body} for d, _, body in kept])
-    write(args.out_dir / "tech-titles.jsonl", [{"doc_id": d, "text": title} for d, title, _ in kept])
+    write(args.out_dir / f"{args.name}-passages.jsonl", [{"doc_id": d, "text": body} for d, _, body in kept])
+    write(args.out_dir / f"{args.name}-titles.jsonl", [{"doc_id": d, "text": title} for d, title, _ in kept])
 
     words = sum(len(body.split()) for _, _, body in kept) / max(len(kept), 1)
     print(f"wrote {len(kept):,} body/title pairs to {args.out_dir} (mean body {words:.0f} words, seed {args.seed})")
