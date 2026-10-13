@@ -74,25 +74,24 @@ class Student(nn.Module):
         return out / mx.maximum(mx.linalg.norm(out, axis=-1, keepdims=True), EPS)
 
 
-def relational_loss(student: mx.array, teacher: mx.array) -> mx.array:
-    """Match the teacher's pairwise similarity structure, excluding the diagonal."""
-    student_similarity = student @ student.T
-    teacher_similarity = teacher @ teacher.T
-
+def relational_loss(student: mx.array, target_similarity: mx.array) -> mx.array:
+    """Match a target pairwise similarity matrix, excluding the diagonal."""
     n = student.shape[0]
     off_diagonal = 1.0 - mx.eye(n)
-    squared = (student_similarity - teacher_similarity) ** 2 * off_diagonal
+    squared = (student @ student.T - target_similarity) ** 2 * off_diagonal
     return squared.sum() / mx.maximum(off_diagonal.sum(), 1.0)
 
 
-def listwise_loss(student: mx.array, teacher: mx.array, temperature: float = 0.05) -> mx.array:
-    """KL from the teacher's softmax over each row's neighbours to the student's."""
+def listwise_loss(
+    student: mx.array, target_similarity: mx.array, temperature: float = 0.05
+) -> mx.array:
+    """KL from the target's softmax over each row's neighbours to the student's."""
     n = student.shape[0]
     diagonal = mx.eye(n) * 1e4
-    teacher_logits = (teacher @ teacher.T) / temperature - diagonal
+    target_logits = target_similarity / temperature - diagonal
     student_logits = (student @ student.T) / temperature - diagonal
-    target = mx.softmax(teacher_logits, axis=-1)
-    log_target = teacher_logits - mx.logsumexp(teacher_logits, axis=-1, keepdims=True)
+    target = mx.softmax(target_logits, axis=-1)
+    log_target = target_logits - mx.logsumexp(target_logits, axis=-1, keepdims=True)
     log_student = student_logits - mx.logsumexp(student_logits, axis=-1, keepdims=True)
     return (target * (log_target - log_student)).sum(axis=-1).mean()
 

@@ -75,6 +75,20 @@ class TextPool:
         return np.asarray(self.teacher[rows], dtype=np.float32)
 
 
+def inverse_document_frequency(features: FeatureCache, num_buckets: int) -> np.ndarray:
+    """IDF per bucket; a bucket occurs at most once per text in the sparse cache."""
+    document_frequency = np.bincount(np.asarray(features.buckets), minlength=num_buckets)
+    return (np.log((len(features) + 1) / (document_frequency + 1)) + 1.0).astype(np.float32)
+
+
+def lexical_vectors(sparse, idf: np.ndarray) -> np.ndarray:
+    """L2-normalized IDF-weighted signed counts, the ngram-tfidf baseline's vectors."""
+    out = np.zeros((len(sparse), len(idf)), dtype=np.float32)
+    for row, (buckets, counts) in enumerate(sparse):
+        out[row, buckets] = counts * idf[buckets]
+    return out / np.maximum(np.linalg.norm(out, axis=1, keepdims=True), 1e-8)
+
+
 def memory_line() -> str:
     return (
         f"mem {mx.get_active_memory() / GB:.2f}+{mx.get_cache_memory() / GB:.2f} GB"
@@ -97,10 +111,12 @@ def train(args: argparse.Namespace) -> dict:
     if args.queries:
         queries = TextPool(args.queries, args.query_teacher, spec, args.query_holdout)
     n_query = round(args.batch_size * args.query_fraction) if queries else 0
+    idf = inverse_document_frequency(passages.features, spec.num_buckets) if args.lexical_weight else None
     print(
         f"{passages.train_count:,} passages (+{args.holdout:,} held out)"
         + (f", {queries.train_count:,} queries, {n_query}/{args.batch_size} per batch" if queries else "")
-        + f", config {args.config}, loss {args.loss}, {args.steps:,} steps",
+        + f", config {args.config}, loss {args.loss}, lexical weight {args.lexical_weight}"
+        + f", {args.steps:,} steps",
         flush=True,
     )
     print(f"  {config.describe()}", flush=True)
@@ -129,8 +145,12 @@ def train(args: argparse.Namespace) -> dict:
             sparse += queries.features.sparse(query_rows)
             target = np.concatenate([target, queries.targets(query_rows)])
         buckets, counts, mask = (mx.array(part) for part in pad_batch(sparse, PAD_MULTIPLE))
+        similarity = target @ target.T
+        if idf is not None:
+            lexical = lexical_vectors(sparse, idf)
+            similarity = args.lexical_weight * (lexical @ lexical.T) + (1 - args.lexical_weight) * similarity
 
-        loss, grads = step_fn(model, buckets, counts, mask, mx.array(target))
+        loss, grads = step_fn(model, buckets, counts, mask, mx.array(similarity))
         optimizer.update(model, grads)
         mx.eval(model.parameters(), optimizer.state)
 
@@ -184,6 +204,7 @@ def save(result: dict, args: argparse.Namespace) -> Path:
         "learning_rate": args.learning_rate,
         "loss": args.loss,
         "temperature": args.temperature if args.loss == "listwise" else None,
+        "lexical_weight": args.lexical_weight,
         "holdout": args.holdout,
         "queries": str(args.queries) if args.queries else None,
         "query_fraction": args.query_fraction if args.queries else 0.0,
@@ -213,6 +234,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--query-teacher", type=Path, default=Path("data/train/queries-teacher.npy"))
     parser.add_argument("--query-fraction", type=float, default=0.5)
     parser.add_argument("--query-holdout", type=int, default=1024)
+    parser.add_argument(
+        "--lexical-weight", type=float, default=0.0, help="share of n-gram TF-IDF in the target similarity"
+    )
     parser.add_argument("--learning-rate", type=float, default=3e-3)
     parser.add_argument("--weight-decay", type=float, default=1e-5)
     parser.add_argument("--seed", type=int, default=0)
