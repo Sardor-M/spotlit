@@ -8,14 +8,21 @@ from pathlib import Path
 from .schema import Doc
 
 BATCH = 256
+CHECKPOINT_SUFFIXES = (".safetensors", ".json")
+
+
+def checkpoint_stem(path: Path) -> Path:
+    """Strip only a real checkpoint suffix, so tags like `lex1.0` survive."""
+    path = Path(path)
+    return path.with_name(path.name.removesuffix(path.suffix)) if path.suffix in CHECKPOINT_SUFFIXES else path
 
 
 class StudentRetriever:
     """Cosine similarity over the distilled student's vectors."""
 
     def __init__(self, checkpoint: Path):
-        self.checkpoint = Path(checkpoint)
-        self.name = f"student({self.checkpoint.stem})"
+        self.checkpoint = checkpoint_stem(checkpoint)
+        self.name = f"student({self.checkpoint.name})"
         self._model = None
         self._spec = None
         self._doc_ids: list[str] = []
@@ -33,10 +40,10 @@ class StudentRetriever:
 
         mx.set_cache_limit(MLX_CACHE_LIMIT)
 
-        meta = json.loads(self.checkpoint.with_suffix(".json").read_text(encoding="utf-8"))
+        meta = json.loads(self.checkpoint.with_name(self.checkpoint.name + ".json").read_text(encoding="utf-8"))
         config = StudentConfig(**meta["config"])
         model = Student(config)
-        weights = mx.load(str(self.checkpoint.with_suffix(".safetensors")))
+        weights = mx.load(str(self.checkpoint.with_name(self.checkpoint.name + ".safetensors")))
         model.update(tree_unflatten(list(weights.items())))
         mx.eval(model.parameters())
 
