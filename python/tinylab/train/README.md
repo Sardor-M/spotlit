@@ -25,6 +25,7 @@ caffeinate -i uv run tinylab-label --passages data/train/design-titles.jsonl \
 ```sh
 caffeinate -i nice -n 10 uv run tinylab-fit --tag design \
     --source data/train/tech-passages.jsonl --source data/train/tech-titles.jsonl \
+    --source data/train/stats-passages.jsonl --source data/train/stats-titles.jsonl \
     --source data/train/design-passages.jsonl --source data/train/design-titles.jsonl
 ```
 
