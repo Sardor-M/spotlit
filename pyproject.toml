@@ -22,6 +22,7 @@ tinylab-build-training-set = "tinylab.data.build_training_set:main"
 tinylab-build-technical-set = "tinylab.data.build_technical_set:main"
 tinylab-label = "tinylab.data.label_with_teacher:main"
 tinylab-train = "tinylab.train.distill:main"
+tinylab-fit = "tinylab.train.fit_linear:main"
 
 [build-system]
 requires = ["hatchling"]
