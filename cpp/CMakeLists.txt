@@ -45,3 +45,14 @@ add_test(
     NAME encoder_parity
     COMMAND tinylab_encoder_parity ${CMAKE_CURRENT_SOURCE_DIR}/../tests/encoder_goldens.txt
 )
+
+# Needs an exported model: uv run tinylab-export.
+set(TINYLAB_MODEL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../dist/tinylab-student-v1" CACHE PATH "Exported model directory")
+add_executable(tinylab_embedding_parity tests/embedding_parity.cpp)
+target_link_libraries(tinylab_embedding_parity PRIVATE tinylab_runtime)
+if(EXISTS "${TINYLAB_MODEL_DIR}/student.tlab")
+    add_test(
+        NAME embedding_parity
+        COMMAND tinylab_embedding_parity ${TINYLAB_MODEL_DIR}/student.tlab ${TINYLAB_MODEL_DIR}/goldens.txt
+    )
+endif()

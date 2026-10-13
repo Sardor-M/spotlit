@@ -12,7 +12,7 @@ Writes `dist/tinylab-student-v1/`:
 | :--- | :--- |
 | `student.tlab` | the model: header, per-row scales, INT8 table (1,990,696 bytes) |
 | `model.json` | encoder spec, size, sha256, quantization error |
-| `goldens.json` | reference embeddings for runtime parity tests |
+| `goldens.json`, `goldens.txt` | reference embeddings for the JS and C++ parity tests |
 
 It also writes `checkpoints/<stem>-int8`, the dequantized weights, so `tinylab-eval` scores
 exactly what ships. Export refuses a file over 2,000,000 bytes (ADR-0008).

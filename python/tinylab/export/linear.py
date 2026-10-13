@@ -113,6 +113,15 @@ def main(argv: list[str] | None = None) -> int:
         for name, text in golden_texts()
     ]
     (args.out / "goldens.json").write_text(json.dumps({"sha256": digest, "cases": goldens}), encoding="utf-8")
+    (args.out / "goldens.txt").write_text(
+        f"sha256 {digest}\n"
+        + "".join(
+            f"case {case['name']} {case['text'].encode('utf-8').hex() or '-'} {len(case['vector'])} "
+            + " ".join(repr(x) for x in case["vector"]) + "\n"
+            for case in goldens
+        ),
+        encoding="utf-8",
+    )
 
     dequantized = stem.with_name(stem.name + "-int8")
     weights = mx.array((q * scales[:, None]).astype(np.float32))
