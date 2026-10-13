@@ -16,7 +16,7 @@ from .distill import TextPool, teacher_for
 
 TEACHER_DIM = 384
 ROWS_PER_CHUNK = 40_000_000
-SOURCES = ("tech", "stats")
+SOURCES = ("tech", "stats", "design")
 
 
 def pooled(pool: TextPool, rows: np.ndarray, buckets: int) -> np.ndarray:

@@ -30,7 +30,7 @@ caffeinate -i nice -n 10 uv run tinylab-fit --tag design \
 ```
 
 About a minute; writes `checkpoints/student-linear-6144x320-<tag>`. Without `--source` it
-fits the defaults (tech + stats).
+fits the defaults (tech + stats + design), the release model.
 
 ## Contextual student (ADR-0011)
 
