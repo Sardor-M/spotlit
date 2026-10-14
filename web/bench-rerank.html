@@ -18,12 +18,11 @@ the top 400 (goal, element) pairs. Times are medians per page step on this brows
 WebAssembly threads; <code>?ort=</code> sets where ONNX Runtime Web is served (default <code>/ortweb/</code>).</p>
 <pre id="out">running...</pre>
 <script type="module">
-import { Student, cosine } from "./src/tinylab.js";
-import { WordPiece } from "./src/wordpiece.js";
+import { ElementRanker, queryOf } from "./src/element-ranker.js";
 
 const params = new URLSearchParams(location.search);
 const ORT_BASE = params.get("ort") ?? "/ortweb/";
-const DEPTH = 400, WARMUP = 2;
+const WARMUP = 2;
 const MODELS = [
   ["BERT-tiny", "/dist/reranker-bert_uncased_L-2_H-128_A-2-v1", "L-2_H-128_A-2"],
   ["BERT-mini", "/dist/reranker-bert_uncased_L-4_H-256_A-4-v1", "L-4_H-256_A-4"],
@@ -36,64 +35,40 @@ const log = (value) => {
   lines.push(line); out.textContent = lines.join("\n"); console.log(line);
 };
 const median = (xs) => { const s = [...xs].sort((a, b) => a - b); return s[Math.floor(s.length / 2)]; };
-const queryOf = (step) => step.task + (step.history.length ? ` Previous actions: ${step.history.join("; ")}` : "");
 
-function stage1Top(stage1, step) {
-  const q = stage1.embed(queryOf(step));
-  return step.candidates.map(([id, text]) => [id, cosine(q, stage1.embed(text)), text])
-    .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0)).slice(0, DEPTH);
-}
-
-function tensors(ort, tokenizer, query, texts) {
-  const encoded = texts.map((text) => tokenizer.encodePair(query, text));
-  const width = Math.max(...encoded.map((e) => e.inputIds.length));
-  const ids = new BigInt64Array(texts.length * width), mask = new BigInt64Array(texts.length * width);
-  const types = new BigInt64Array(texts.length * width);
-  encoded.forEach((e, row) => e.inputIds.forEach((id, col) => {
-    ids[row * width + col] = BigInt(id); mask[row * width + col] = 1n; types[row * width + col] = BigInt(e.tokenTypeIds[col]);
-  }));
-  const dims = [texts.length, width];
-  return { input_ids: new ort.Tensor("int64", ids, dims), attention_mask: new ort.Tensor("int64", mask, dims),
-           token_type_ids: new ort.Tensor("int64", types, dims) };
-}
-
-async function bench(ort, stage1, data, [name, dir, key], variant, ep) {
-  const tokenizer = new WordPiece(await (await fetch(`${dir}/vocab.txt`)).text());
-  const bytes = (await (await fetch(`${dir}/reranker.${variant}.onnx`)).arrayBuffer()).byteLength;
-  let session;
+async function bench(ort, data, [name, dir, key], variant, ep) {
+  let ranker;
   try {
-    session = await ort.InferenceSession.create(`${dir}/reranker.${variant}.onnx`, { executionProviders: [ep], graphOptimizationLevel: "all" });
+    ranker = await ElementRanker.load(ort, { stage1: "/dist/tinylab-ranker-v1/student.tlab",
+      reranker: `${dir}/reranker.${variant}.onnx`, vocab: `${dir}/vocab.txt` }, [ep]);
   } catch (error) {
     log({ model: name, variant, ep, error: String(error).slice(0, 160) });
     return;
   }
-  const timing = { stage1: [], tokenize: [], rerank: [], total: [] };
+  const timing = { stage1: [], rerank: [], total: [] };
   const ranks = [];
   for (const [index, step] of data.steps.entries()) {
+    const candidates = step.candidates.map(([id, text]) => ({ id, text }));
+    const query = queryOf(step.task, step.history);
     const t0 = performance.now();
-    const top = stage1Top(stage1, step);
+    const head = ranker.stage1Order(query, candidates).slice(0, 400);
     const t1 = performance.now();
-    const feeds = tensors(ort, tokenizer, queryOf(step), top.map(([, , text]) => text));
+    await ranker.scorePairs(query, head.map((c) => c.text));
     const t2 = performance.now();
-    const scores = (await session.run(feeds)).score.data;
-    const t3 = performance.now();
-    const order = top.map(([id], i) => [id, scores[i], i]).sort((a, b) => b[1] - a[1] || a[2] - b[2]).map(([id]) => id);
+    const ranked = await ranker.rank(step.task, candidates, { k: candidates.length, history: step.history });
     const gold = new Set(step.gold);
-    const rank = order.findIndex((id) => gold.has(id));
+    const rank = ranked.findIndex((c) => gold.has(c.id));
     ranks.push(rank < 0 ? null : rank + 1);
-    if (index >= WARMUP) {
-      timing.stage1.push(t1 - t0); timing.tokenize.push(t2 - t1); timing.rerank.push(t3 - t2); timing.total.push(t3 - t0);
-    }
+    if (index >= WARMUP) { timing.stage1.push(t1 - t0); timing.rerank.push(t2 - t1); timing.total.push(t2 - t0); }
   }
   const python = data[`python_ranks_${key}`];
-  const agree = ranks.filter((r, i) => (r !== null && r <= 50) === (python[i] !== null && python[i] <= 50)).length;
-  log({ model: name, variant, ep, mb: +(bytes / 1e6).toFixed(2),
-        stage1_ms: +median(timing.stage1).toFixed(1), tokenize_ms: +median(timing.tokenize).toFixed(1),
+  const inTop = (r) => r !== null && r <= 50;
+  const agree = ranks.filter((r, i) => inTop(r) === inTop(python[i])).length;
+  log({ model: name, variant, ep, stage1_ms: +median(timing.stage1).toFixed(1),
         rerank_400_ms: +median(timing.rerank).toFixed(1), step_total_ms: +median(timing.total).toFixed(1),
-        r50_browser: +(ranks.filter((r) => r !== null && r <= 50).length / ranks.length).toFixed(3),
-        r50_python: +(python.filter((r) => r !== null && r <= 50).length / python.length).toFixed(3),
-        top50_agreement: `${agree}/${ranks.length}` });
-  await session.release();
+        r50_browser: +(ranks.filter(inTop).length / ranks.length).toFixed(3),
+        r50_python: +(python.filter(inTop).length / python.length).toFixed(3), top50_agreement: `${agree}/${ranks.length}` });
+  await ranker.session.release();
 }
 
 try {
@@ -102,12 +77,11 @@ try {
   ort.env.wasm.numThreads = Math.min(8, navigator.hardwareConcurrency || 4);
   const adapter = navigator.gpu ? await navigator.gpu.requestAdapter() : null;
   log({ crossOriginIsolated, threads: ort.env.wasm.numThreads, webgpu: Boolean(adapter), ua: navigator.userAgent });
-  const stage1 = Student.fromBuffer(await (await fetch("/dist/tinylab-ranker-v1/student.tlab")).arrayBuffer());
   const data = await (await fetch(params.get("data") ?? "/bench-data.json")).json();
-  const runs = (params.get("runs") ?? "int8:wasm,fp32:webgpu,int8:webgpu").split(",").map((r) => r.split(":"));
+  const runs = (params.get("runs") ?? "int8:wasm,fp32:webgpu").split(",").map((r) => r.split(":"));
   for (const model of MODELS) {
     for (const [variant, ep] of runs) {
-      if (ep !== "webgpu" || adapter) await bench(ort, stage1, data, model, variant, ep);
+      if (ep !== "webgpu" || adapter) await bench(ort, data, model, variant, ep);
     }
   }
   log("DONE");

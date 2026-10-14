@@ -42,3 +42,20 @@ node web/test/wordpiece-parity.mjs dist/reranker-bert_uncased_L-2_H-128_A-2-v1
 `bench-rerank.html` times both stages per page step; it needs a cross-origin isolated server
 (COOP/COEP headers) for WebAssembly threads and ONNX Runtime Web served at `?ort=` (default
 `/ortweb/`).
+
+### API
+
+```js
+import * as ort from "onnxruntime-web";
+import { ElementRanker, collectCandidates } from "./src/element-ranker.js";
+
+const ranker = await ElementRanker.load(ort, {
+  stage1: "tinylab-ranker-v1/student.tlab",
+  reranker: "reranker-bert-tiny/reranker.int8.onnx",
+  vocab: "reranker-bert-tiny/vocab.txt",
+});
+const top = await ranker.rank("book a table for two tonight", collectCandidates(document), { k: 50 });
+```
+
+`collectCandidates` describes live elements the way the training data does (tag, key
+attributes, own text, parent text); `rank` returns the top `k` with each one's stage 1 rank.
