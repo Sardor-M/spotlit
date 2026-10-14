@@ -12,6 +12,11 @@ dependencies = []
 teacher = ["sentence-transformers>=3,<6", "datasets>=3,<5"]
 # Training on Apple Silicon; see docs/all/learnings/02-mlx/.
 train = ["mlx>=0.20", "numpy>=1.26"]
+export = [
+    "onnx>=1.23.2",
+    "onnxruntime>=1.31.0",
+    "onnxscript>=0.7.2",
+]
 
 [project.scripts]
 # One entry point per pipeline stage. Later stages land with their ADRs.
@@ -30,6 +35,7 @@ tinylab-build-mind2web = "tinylab.agent.build_mind2web:main"
 tinylab-rank-elements = "tinylab.agent.rank:main"
 tinylab-train-ranker = "tinylab.agent.train_ranker:main"
 tinylab-train-reranker = "tinylab.agent.train_reranker:main"
+tinylab-export-reranker = "tinylab.agent.export_reranker:main"
 
 [build-system]
 requires = ["hatchling"]

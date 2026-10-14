@@ -122,9 +122,18 @@ def main(argv: list[str] | None = None) -> int:
 
     encoder = None
     if args.reranker:
-        from .rerank import CrossEncoder
+        if args.reranker.suffix == ".onnx":
+            from transformers import AutoTokenizer
 
-        encoder = CrossEncoder.load(args.reranker)
+            from .export_reranker import OnnxEncoder
+
+            encoder = OnnxEncoder(args.reranker, AutoTokenizer.from_pretrained(args.reranker.parent))
+            reranker_name = f"{args.reranker.parent.name}/{args.reranker.name}"
+        else:
+            from .rerank import CrossEncoder
+
+            encoder = CrossEncoder.load(args.reranker)
+            reranker_name = args.reranker.name
         stage1 = args.checkpoint[0].name
 
     results: dict[str, list[dict]] = {}
@@ -138,7 +147,7 @@ def main(argv: list[str] | None = None) -> int:
         if encoder is not None:
             from .rerank import rerank
 
-            rankings[f"{stage1} > {args.reranker.name}"] = rerank(step, rankings[stage1], encoder)
+            rankings[f"{stage1} > {reranker_name}"] = rerank(step, rankings[stage1], encoder)
         for name, ranking in rankings.items():
             results.setdefault(name, []).append(scores_of(step, ranking))
             savings.setdefault(name, []).append(token_saving(step, ranking))
