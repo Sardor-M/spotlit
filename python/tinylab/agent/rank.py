@@ -106,6 +106,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--steps", type=Path, default=Path("data/mind2web/dev.jsonl"))
     parser.add_argument("--checkpoint", type=Path, action="append", default=[], help="student; repeatable")
     parser.add_argument("--teacher", action="store_true", help="also score the 33M teacher (uses the GPU)")
+    parser.add_argument("--reranker", type=Path, help="stage 2; re-ranks the first --checkpoint's list")
     parser.add_argument("--limit", type=int, default=0)
     args = parser.parse_args(argv)
 
@@ -119,6 +120,13 @@ def main(argv: list[str] | None = None) -> int:
     if args.teacher:
         embedders["teacher"] = teacher_embedder()
 
+    encoder = None
+    if args.reranker:
+        from .rerank import CrossEncoder
+
+        encoder = CrossEncoder.load(args.reranker)
+        stage1 = args.checkpoint[0].name
+
     results: dict[str, list[dict]] = {}
     savings: dict[str, list[float]] = {}
     start = time.time()
@@ -127,6 +135,10 @@ def main(argv: list[str] | None = None) -> int:
         for name, embed in embedders.items():
             rankings[name] = cosine_ranking(step, embed)
             rankings[f"bm25+{name}"] = fuse(rankings["bm25"], rankings[name])
+        if encoder is not None:
+            from .rerank import rerank
+
+            rankings[f"{stage1} > {args.reranker.name}"] = rerank(step, rankings[stage1], encoder)
         for name, ranking in rankings.items():
             results.setdefault(name, []).append(scores_of(step, ranking))
             savings.setdefault(name, []).append(token_saving(step, ranking))

@@ -29,6 +29,7 @@ tinylab-export = "tinylab.export.linear:main"
 tinylab-build-mind2web = "tinylab.agent.build_mind2web:main"
 tinylab-rank-elements = "tinylab.agent.rank:main"
 tinylab-train-ranker = "tinylab.agent.train_ranker:main"
+tinylab-train-reranker = "tinylab.agent.train_reranker:main"
 
 [build-system]
 requires = ["hatchling"]
