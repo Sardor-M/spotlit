@@ -20,7 +20,7 @@ const isPunctuation = (c) => ASCII_PUNCTUATION.test(c) || PUNCTUATION.test(c);
 export function normalize(text) {
   let out = "";
   for (const c of text) {
-    if (c === "\0" || c === "�" || isControl(c)) continue;
+    if (c === "\0" || c === "\ufffd" || isControl(c)) continue;
     if (isWhitespace(c)) out += " ";
     else if (isCjk(c.codePointAt(0))) out += ` ${c} `;
     else out += c;
