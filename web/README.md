@@ -50,9 +50,9 @@ import * as ort from "onnxruntime-web";
 import { ElementRanker, collectCandidates } from "./src/element-ranker.js";
 
 const ranker = await ElementRanker.load(ort, {
-  stage1: "tinylab-ranker-v1/student.tlab",
-  reranker: "reranker-bert-tiny/reranker.int8.onnx",
-  vocab: "reranker-bert-tiny/vocab.txt",
+  stage1: "models/element-ranker-v1/stage1.tlab",
+  reranker: "models/element-ranker-v1/reranker.int8.onnx",
+  vocab: "models/element-ranker-v1/vocab.txt",
 });
 const top = await ranker.rank("book a table for two tonight", collectCandidates(document), { k: 50 });
 ```

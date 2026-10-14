@@ -1,158 +1,123 @@
 # tinylab
 
-Building very small models that run on device — in a browser tab, in a C++ binary, on a
-microcontroller — and releasing them as open weights.
+Open-weight models small enough to run in a browser tab.
 
-In development. The harness, encoder and teacher measurements exist; the student is a
-closed-form linear fit that beats BM25 in fusion on development queries but has not yet
-passed the evaluation gate. Nothing is released.
-
-**Current target:** a tokenizer-free text embedding model — short text to a ~320 dim
-vector, distilled from a strong sentence embedder, with hashed character n-grams instead of
-a vocabulary file. 2 MB INT8, hard budget. First consumer is hybrid retrieval.
-
-## The idea
-
-A large model's judgment over a narrow, fixed-shape input can be compressed into a few
-hundred kilobytes, if you distill it densely, quantize it deliberately, and measure it
-honestly.
-
-The reference artifact is [millionco/moka](https://github.com/millionco/moka): a
-105,353-parameter Go network, 114 KB of INT8 weights, running in an ordinary webpage with
-no ML framework on the deployment side. The domain is interchangeable; Go is just the demo.
+**Element ranker v1** (6.7 MB) ranks a web page's elements against an AI agent's goal, so
+the agent sends its large model the 50 elements that matter instead of the whole page:
+32-43x fewer tokens per step, in about a quarter of a second, entirely in the browser.
 
 ```
-   TEACHER                        STUDENT                     ARTIFACT
-   large, slow, accurate          small, fast, close enough   what ships
-
-   +-------------------+          +-----------------+         +----------------+
-   |  1M-1B params     |          |  ~100K-2M params|         |  ~0.1-2 MB     |
-   |  megabytes        |  ---->   |  fixed shape    |  ---->  |  INT8 weights  |
-   |  needs a runtime  | distill  |  no framework   | quantize|  + manifest    |
-   +-------------------+          +-----------------+         +----------------+
-                                                                     |
-                                                                     v
-                                               +---------------------+-------------------+
-                                               |                     |                   |
-                                          C++ binary            browser Worker      microcontroller
-                                          (hand-written         (hand-written       (integer kernels,
-                                           kernels)              kernels)            no FPU)
+   web page: 400-500 elements
+        |
+   describe     each element as one line: tag, labels, own text, parent text
+        |
+   stage 1      2.0 MB  hashed byte n-grams, no tokenizer        every element, ~35 ms
+        |  top 400
+   stage 2      4.5 MB  BERT-tiny cross-encoder, INT8 ONNX       400 pairs, ~185 ms
+        |  top 50
+   AI agent's large model  ->  click, type, select
 ```
 
-## Layout
+## Results
+
+Mind2Web test splits, run once after the model was frozen. Share of steps whose clicked
+element is in the top 50.
+
+| System | Size | Cross-task | Cross-website | Cross-domain |
+| :--- | ---: | ---: | ---: | ---: |
+| Keyword search (BM25) | 0 | 44.2% | 43.8% | 44.5% |
+| tinylab stage 1 alone | 2.0 MB | 69.2% | 56.7% | 57.7% |
+| **tinylab element ranker v1** | **6.7 MB** | **80.8%** | **75.8%** | **75.9%** |
+| MindAct DeBERTa-v3-base (paper) | 184M params | 88.9% | 85.3% | 85.7% |
+
+Tokens sent at the top 50: 43x / 34x / 32x fewer than the step's cleaned HTML. Speed is
+Chrome on an M4 Pro with eight WebAssembly threads. Details and every variant tried are in
+[docs/benchmarks](docs/benchmarks/README.md).
+
+## Use it
+
+The model is in [`models/element-ranker-v1`](models/element-ranker-v1/README.md) (also
+attached to the GitHub release): `stage1.tlab`, `reranker.int8.onnx`, `vocab.txt`.
+
+```js
+import * as ort from "onnxruntime-web";
+import { ElementRanker, collectCandidates } from "./web/src/element-ranker.js";
+
+const ranker = await ElementRanker.load(ort, {
+  stage1: "models/element-ranker-v1/stage1.tlab",
+  reranker: "models/element-ranker-v1/reranker.int8.onnx",
+  vocab: "models/element-ranker-v1/vocab.txt",
+});
+const top50 = await ranker.rank("Find a store in Los Angeles", collectCandidates(document));
+```
+
+- Run the INT8 re-ranker on ONNX Runtime Web's `wasm` provider; its WebGPU backend scores
+  INT8 graphs wrongly in version 1.30.
+- WebAssembly threads need a cross-origin isolated page. On one thread a step takes about 1 s.
+- Stage 1 and the tokenizer are dependency-free JavaScript (`web/src/`); stage 1 also has a
+  C++ runtime (`cpp/`).
+
+## How it was built
+
+1. **Data.** Mind2Web (CC BY 4.0): 7,775 recorded steps on 73 websites for training and
+   development, split by website; the three test splits held back.
+2. **Stage 1.** A 6,144 x 320 table of hashed byte n-grams, trained with a softmax over each
+   page's candidates. Fast and wide, but it memorizes training websites.
+3. **Stage 2.** BERT-tiny (4.4M params, Apache-2.0) fine-tuned as a cross-encoder on stage
+   1's hard negatives. Pretraining is what lets it generalize to new websites.
+4. **Export.** INT8 for both stages; a single-file `.tlab` format for stage 1 and ONNX for
+   stage 2. Browser, C++ and Python agree (`docs/benchmarks/browser-runtime.md`).
+5. **Choice of size.** BERT-mini was 6 points better on dev but took 1.2 s per step in the
+   browser; BERT-tiny fits a one-second budget with room.
+
+## Before the element ranker
+
+tinylab started as a 2 MB tokenizer-free text embedder for hybrid search. It adds +0.024
+nDCG@10 to BM25 on technical prose but falls below BM25 on design documents, and no variant
+tried (gradient training, bigger tables, multiple hashes, word-order models) closed the gap.
+Its weights became stage 1's starting point. The record is in
+[docs/benchmarks/search-student.md](docs/benchmarks/search-student.md).
+
+## Repository
 
 ```
 tinylab/
-├── AGENTS.md           rules for writing code here
-├── python/tinylab/     training side
-│   ├── encoder.py          text -> hashed byte n-grams, frozen contract
-│   ├── eval/               evaluation harness, baselines, keep/discard gate
-│   ├── data/               dataset generation, teacher labelling
-│   ├── models/             network definitions
-│   ├── train/              training loop, losses, quantization-aware training
-│   └── export/             quantization, manifest + binary writer
-├── cpp/                inference side, hand-written kernels, no dependencies
-│   ├── include/tinylab/
-│   ├── src/
-│   └── tests/              cross-language parity against tests/encoder_goldens.txt
-├── web/                browser runtime (Worker + hand-written kernels)
-├── models/             exported artifacts and manifests
-├── tests/              golden vectors shared by every language port
-└── docs/
-    └── all/            private notes, gitignored, local only
+├── models/element-ranker-v1/   the release: weights, manifest, model card, licence
+├── web/                        browser runtime: src/ (tinylab.js, wordpiece.js, element-ranker.js), tests, bench pages
+├── cpp/                        C++ runtime for the .tlab format, parity tests
+├── python/tinylab/
+│   ├── agent/                  element ranker: Mind2Web data, training, re-ranker, export, evaluation
+│   ├── train/                  the text student: closed-form fit, distillation
+│   ├── export/                 .tlab writer (INT8, budget-checked)
+│   ├── eval/                   retrieval evaluation harness, stdlib only
+│   ├── data/                   corpora, teacher labelling, word features
+│   └── encoder.py              byte n-gram hashing, the frozen input contract
+├── tests/                      golden vectors shared by Python, JavaScript and C++
+└── docs/benchmarks/            measurements behind every number above
 ```
 
-`docs/all/` is deliberately excluded from git. It holds working notes, source teardowns,
-decision records and the experiment log. Those are for building understanding, not for
-publishing.
-
-## Principles
-
-Carried over from studying the reference implementation.
-
-**Build the evaluation harness before the model.** Everything downstream is only meaningful
-if the number is trustworthy. Split held-out data by the natural correlated unit — document,
-session, recording — never by row. Seal a final test set and open it once.
-
-**Never select on a proxy metric.** In the reference project, the checkpoint with the best
-held-out accuracy was one of its weakest players in actual head-to-head games. Score the
-thing you care about, end to end.
-
-**Spend effort at inference time, not only on weights.** Training work moved the reference
-model from 2 to 19 arena wins. Search and test-time ensembling moved it from 19 to 51.
-
-**Size budgets are gates, not preferences.** Export fails when the artifact exceeds the
-budget, the same way a failing test fails a build.
-
-**Record what did not work, with the number.** A rejected idea you can point at is worth
-more than a vague memory that it "didn't work."
-
-## Roadmap
-
-Each phase ends with something measurable.
-
-```
-  [0] understand the reference      done
-       |
-  [1] choose the problem            done — tokenizer-free text embedder
-       |
-  [2] build the evaluation harness  done — python/tinylab/eval/, zero dependencies
-       |
-  [3] trivial baseline              done on the fixture; pending a real corpus
-       |
-  [4] input encoding                done — Python + C++, parity tested
-       |
-  [5] teacher                       done — premise confirmed, dense beats BM25
-       |
-  [6] student v0                    any learned model that beats the baseline
-       |
-  [7] distill properly              dense targets, on-policy correction
-       |
-  [8] quantize                      INT8 export against a hard byte budget
-       |
-  [9] serve                         C++ runtime, then browser; latency measured
-       |
- [10] release                       open weights, licence, model card, embed example
-```
-
-Phase 2 before phase 5 is not a typo. If the harness comes after the first results, the
-metric gets chosen to fit numbers you have already seen.
-
-## Getting started
-
-The evaluation harness runs today. The model sides are still stubs that prove the
-toolchain.
+## Reproduce
 
 ```sh
-# evaluation harness — stdlib only, no install needed
-PYTHONPATH=python python3 -m tinylab.eval.cli selfcheck
-PYTHONPATH=python python3 -m tinylab.eval.cli run --system bm25 --split val
+uv sync --extra train --extra teacher --extra export
+uv run tinylab-build-mind2web                   # Mind2Web train split, about 6 GB downloaded
+uv run tinylab-train-ranker --tag v1            # stage 1, about 20 min on an M4 Pro
+uv run tinylab-train-reranker --tag v1          # stage 2, about 6 min
+uv run tinylab-export --checkpoint checkpoints/ranker-linear-6144x320-v1 --out dist/tinylab-ranker-v1
+uv run tinylab-export-reranker --reranker checkpoints/reranker-bert_uncased_L-2_H-128_A-2-v1
+uv run tinylab-rank-elements --checkpoint checkpoints/ranker-linear-6144x320-v1-int8 \
+    --reranker dist/reranker-bert_uncased_L-2_H-128_A-2-v1/reranker.int8.onnx
 
-# training side (uv provisions its own interpreter)
-uv sync
-
-# inference side, including the encoder parity test
-cmake -S cpp -B cpp/build -DCMAKE_BUILD_TYPE=Release
-cmake --build cpp/build
-ctest --test-dir cpp/build --output-on-failure
-./cpp/build/tinylab_cli
+node web/test/parity.mjs && node web/test/wordpiece-parity.mjs
+cmake -S cpp -B cpp/build && cmake --build cpp/build && ctest --test-dir cpp/build
 ```
 
-Requires a C++20 compiler, [CMake](https://cmake.org/), and [uv](https://docs.astral.sh/uv/).
-
-Without CMake installed, the scaffold builds directly:
-
-```sh
-clang++ -std=c++20 -O3 -Icpp/include cpp/src/*.cpp -o /tmp/tinylab_cli && /tmp/tinylab_cli
-```
-
-## Conventions
-
-[AGENTS.md](AGENTS.md) holds the rules for writing code here. The short version: comments
-are one line or absent, and reasoning lives in `docs/`, not scattered through source files.
+Requires [uv](https://docs.astral.sh/uv/), Node.js, a C++20 compiler and CMake. Training
+uses MLX and PyTorch on Apple Silicon. Writing code here follows [AGENTS.md](AGENTS.md).
 
 ## Licence
 
-MIT for code. The weights licence will be stated separately once there are weights — code
-licences do not clearly cover model weights, and leaving that ambiguous is the most common
-failure in "open weights" releases.
+Code: MIT ([LICENSE](LICENSE)). Model weights: Apache-2.0
+([models/element-ranker-v1/LICENSE](models/element-ranker-v1/LICENSE)), with credits for
+Google's BERT miniatures, Mind2Web and the training text in
+[NOTICE](models/element-ranker-v1/NOTICE).

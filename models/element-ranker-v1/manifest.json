@@ -1,0 +1,46 @@
+{
+  "name": "tinylab element ranker",
+  "version": "1.0.0",
+  "task": "rank a web page's elements against an agent's goal",
+  "license": "Apache-2.0",
+  "files": {
+    "stage1.tlab": {
+      "bytes": 1990696,
+      "sha256": "7817ee583975ae0d6bb263e2c95498581eb81723027de222f63125995936ff67"
+    },
+    "reranker.int8.onnx": {
+      "bytes": 4488511,
+      "sha256": "47f49e150741bcc2e3d0c7444e27b1a85a9cd06c07099b4e715cf93c06b3d124"
+    },
+    "vocab.txt": {
+      "bytes": 231508,
+      "sha256": "07eced375cec144d27c900241f3e339478dec958f92fddbc551f295c992038a3"
+    }
+  },
+  "stage1": {
+    "file": "stage1.tlab",
+    "format": "tlab v1 (python/tinylab/export/README.md)",
+    "encoder": "tinylab v1, 6144 buckets, byte 3/4/5-grams, 512 input bytes",
+    "dims": 320
+  },
+  "stage2": {
+    "file": "reranker.int8.onnx",
+    "base": "google/bert_uncased_L-2_H-128_A-2",
+    "params": 4386049,
+    "inputs": [
+      "input_ids",
+      "attention_mask",
+      "token_type_ids"
+    ],
+    "output": "score",
+    "max_tokens": 128,
+    "tokenizer": "BERT uncased WordPiece, vocab.txt",
+    "execution_provider": "wasm"
+  },
+  "operating_point": {
+    "stage2_depth": 400,
+    "top_k": 50
+  },
+  "query": "goal + ' Previous actions: ' + up to three previous actions joined by '; '",
+  "element": "tag, then aria-label/title/alt/placeholder/name/type/role/value (each cut to 60 chars), then up to 24 words of own text, then '|' and up to 12 words of parent text"
+}

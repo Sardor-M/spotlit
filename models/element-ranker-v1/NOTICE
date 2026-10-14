@@ -1,0 +1,24 @@
+tinylab element ranker v1
+Copyright 2026 Sardor Madaminov
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+This release contains or was derived from the following works.
+
+reranker.int8.onnx
+  Fine-tuned from google/bert_uncased_L-2_H-128_A-2 ("BERT miniatures",
+  Turc et al. 2019), Copyright Google LLC, Apache License 2.0.
+  vocab.txt is that model's WordPiece vocabulary.
+
+Training data
+  Mind2Web (Deng et al. 2023), train split, CC BY 4.0.
+  https://github.com/OSU-NLP-Group/Mind2Web
+  The Mind2Web test splits were used for evaluation only and are not included.
+
+stage1.tlab was initialized from a tinylab text model trained on:
+  CQADupStack (Hoogeveen et al. 2015, via mteb), Apache License 2.0
+  rust-lang/rfcs, MIT or Apache License 2.0
+  kubernetes/enhancements, Apache License 2.0
+  golang/proposal, BSD 3-Clause License
+  swiftlang/swift-evolution, Apache License 2.0
+  kubernetes/website documentation, CC BY 4.0, The Kubernetes Authors
+  with labels from BAAI/bge-small-en-v1.5, MIT License.
