@@ -1,6 +1,6 @@
-# Element ranker on Mind2Web
+# Spotlit on Mind2Web
 
-What the released model (`models/element-ranker-v1`) was trained and measured on, and every
+What the released model (`models/spotlit-v1`) was trained and measured on, and every
 variant tried along the way.
 
 ## Task

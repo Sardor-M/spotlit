@@ -1,4 +1,4 @@
-# tinylab element ranker v1
+# Spotlit v1
 
 A 6.7 MB open-weight model that ranks a web page's elements against an AI agent's goal, in
 the browser. An agent sends only the top 50 elements to its large model instead of the whole
@@ -31,12 +31,12 @@ The goal is the task plus up to three previous actions: `goal + " Previous actio
 
 ```js
 import * as ort from "onnxruntime-web";
-import { ElementRanker, collectCandidates } from "./web/src/element-ranker.js";
+import { Spotlit, collectCandidates } from "./web/src/spotlit.js";
 
-const ranker = await ElementRanker.load(ort, {
-  stage1: "models/element-ranker-v1/stage1.tlab",
-  reranker: "models/element-ranker-v1/reranker.int8.onnx",
-  vocab: "models/element-ranker-v1/vocab.txt",
+const ranker = await Spotlit.load(ort, {
+  stage1: "models/spotlit-v1/stage1.tlab",
+  reranker: "models/spotlit-v1/reranker.int8.onnx",
+  vocab: "models/spotlit-v1/vocab.txt",
 });
 const top50 = await ranker.rank("Find the retired players named James Smith", collectCandidates(document));
 ```
@@ -61,7 +61,7 @@ For reference, MindAct's DeBERTa-v3-base ranker (the benchmark authors'; 184M pa
 with its embedding table, about 29 times ours) reports 88.9 / 85.3 / 85.7% r@50 on the same
 test splits. Candidate descriptions differ, and steps whose clicked element is missing from
 the page HTML (4-7%) count as misses here, so the comparison is approximate. Full details:
-`docs/benchmarks/element-ranker.md`.
+`docs/benchmarks/spotlit.md`.
 
 ## Limits
 

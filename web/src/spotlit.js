@@ -1,4 +1,4 @@
-// Element ranker for browser agents: tinylab stage 1 plus a BERT-tiny re-ranker (ADR-0012 to 0014).
+// Spotlit, an element ranker for browser agents: tinylab stage 1 plus a BERT-tiny re-ranker (ADR-0012 to 0014).
 
 import { Student, cosine } from "./tinylab.js";
 import { WordPiece } from "./wordpiece.js";
@@ -51,7 +51,7 @@ export function collectCandidates(root = document, limit = 2000) {
   return out;
 }
 
-export class ElementRanker {
+export class Spotlit {
   constructor(ort, stage1, session, tokenizer) {
     Object.assign(this, { ort, stage1, session, tokenizer });
   }
@@ -66,7 +66,7 @@ export class ElementRanker {
     const model = new Uint8Array(await bytes(reranker));
     const session = await ort.InferenceSession.create(model, { executionProviders, graphOptimizationLevel: "all" });
     const vocabulary = vocabText ?? (await (await fetch(vocab)).text());
-    return new ElementRanker(ort, student, session, new WordPiece(vocabulary));
+    return new Spotlit(ort, student, session, new WordPiece(vocabulary));
   }
 
   /** Stage 1 order of every candidate, best first. */

@@ -3,7 +3,7 @@
 Public documentation lives here.
 
 - [benchmarks/](benchmarks/README.md): every measurement behind the release
-- [../models/element-ranker-v1/](../models/element-ranker-v1/README.md): the model card
+- [../models/spotlit-v1/](../models/spotlit-v1/README.md): the model card
 - [../python/tinylab/export/README.md](../python/tinylab/export/README.md): the `.tlab` file format
 - [../web/README.md](../web/README.md): the browser runtime and API
 

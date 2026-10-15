@@ -1,11 +1,11 @@
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/img/element-ranker-banner-dark.png">
-  <img alt="element-ranker: ranks a web page's elements for AI browser agents" src="docs/img/element-ranker-banner-light.png">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/spotlit-banner-dark.png">
+  <img alt="Spotlit: lights up the elements an AI browser agent needs" src="docs/img/spotlit-banner-light.png">
 </picture>
 
-# element-ranker
+# Spotlit
 
-element-ranker is an open-weight model that ranks a web page's elements against an AI browser
+Spotlit is an open-weight model that ranks a web page's elements against an AI browser
 agent's goal, so the agent sends its large model the 50 elements that matter instead of the
 whole page. It is 6.7 MB, runs in the browser on WebAssembly with no server and no GPU, and
 takes about a quarter of a second per page step on eight threads. On Mind2Web's three held-out
@@ -17,13 +17,13 @@ against about 44% for keyword search, while the agent reads 32-43x fewer tokens.
 | :--- | :--- | ---: | ---: | :--- | :--- |
 | **Stage 1** | `stage1.tlab` | 1.99 MB | 1.97M | Text as bytes, up to 512 | Hashed byte n-gram table (6,144 x 320, INT8), no tokenizer. Scores every element |
 | **Stage 2** | `reranker.int8.onnx`, `vocab.txt` | 4.72 MB | 4.39M | Goal + element, 128 WordPiece tokens | BERT-tiny cross-encoder (INT8 ONNX). Re-scores stage 1's top 400 |
-| **element-ranker v1** | all three | 6.71 MB | 6.4M | A goal and a page | Both stages; returns the top 50 |
+| **Spotlit v1** | all three | 6.71 MB | 6.4M | A goal and a page | Both stages; returns the top 50 |
 
 This repository holds the code that builds the training data from Mind2Web, trains both
 stages, exports them to INT8, evaluates them, and runs them in the browser (JavaScript) and in
-C++. To use the model, see the [model card](models/element-ranker-v1/README.md) or download
-the [v1.0.0 release](../../releases/tag/element-ranker-v1.0.0). The Python package and the
-command-line tools keep the project's first name, `tinylab`.
+C++. To use the model, see the [model card](models/spotlit-v1/README.md) or download
+the [v1.0.0 release](../../releases/tag/spotlit-v1.0.0). Spotlit is built with tinylab, the
+training toolkit in `python/tinylab`; the Python package and command-line tools keep that name.
 
 ## How it works
 
@@ -57,14 +57,14 @@ command-line tools keep the project's first name, `tinylab`.
 ## Results
 
 Mind2Web test splits, run once after the files were frozen (sha256 in
-[`manifest.json`](models/element-ranker-v1/manifest.json)). Recall@50 is the share of steps
+[`manifest.json`](models/spotlit-v1/manifest.json)). Recall@50 is the share of steps
 whose clicked element is in the top 50.
 
 | System | Size | Cross-task | Cross-website | Cross-domain |
 | :--- | ---: | ---: | ---: | ---: |
 | Keyword search (BM25) | 0 | 44.2% | 43.8% | 44.5% |
 | Stage 1 alone | 2.0 MB | 69.2% | 56.7% | 57.7% |
-| **element-ranker v1** | **6.7 MB** | **80.8%** | **75.8%** | **75.9%** |
+| **Spotlit v1** | **6.7 MB** | **80.8%** | **75.8%** | **75.9%** |
 | MindAct DeBERTa-v3-base, as reported in the Mind2Web paper | 184M params | 88.9% | 85.3% | 85.7% |
 
 | Measure | Cross-task | Cross-website | Cross-domain |
@@ -128,12 +128,12 @@ Every variant tried, the dev results and the runtime checks are in
 
 ```js
 import * as ort from "onnxruntime-web";
-import { ElementRanker, collectCandidates } from "./web/src/element-ranker.js";
+import { Spotlit, collectCandidates } from "./web/src/spotlit.js";
 
-const ranker = await ElementRanker.load(ort, {
-  stage1: "models/element-ranker-v1/stage1.tlab",
-  reranker: "models/element-ranker-v1/reranker.int8.onnx",
-  vocab: "models/element-ranker-v1/vocab.txt",
+const ranker = await Spotlit.load(ort, {
+  stage1: "models/spotlit-v1/stage1.tlab",
+  reranker: "models/spotlit-v1/reranker.int8.onnx",
+  vocab: "models/spotlit-v1/vocab.txt",
 });
 const top50 = await ranker.rank("Find a store in Los Angeles", collectCandidates(document));
 ```
@@ -245,7 +245,7 @@ cmake -S cpp -B cpp/build && cmake --build cpp/build && ctest --test-dir cpp/bui
 `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`
 headers to get threads.
 
-## Before the element ranker
+## Before Spotlit
 
 This project started as tinylab: a 2 MB, tokenizer-free text embedder to add to keyword search.
 It adds +0.024 nDCG@10 to BM25 on technical prose but falls below BM25 on design documents, and
@@ -256,11 +256,11 @@ closed the gap. Its table became stage 1's starting point. The record is in
 ## Repository
 
 ```
-├── models/element-ranker-v1/   the release: weights, manifest, model card, licence, credits
-├── web/                        browser runtime: src/ (tinylab.js, wordpiece.js, element-ranker.js), tests, bench pages
+├── models/spotlit-v1/          the release: weights, manifest, model card, licence, credits
+├── web/                        browser runtime: src/ (spotlit.js, tinylab.js, wordpiece.js), tests, bench pages
 ├── cpp/                        C++ runtime for the .tlab format, parity tests
 ├── python/tinylab/
-│   ├── agent/                  element ranker: Mind2Web data, both stages, export, evaluation
+│   ├── agent/                  Spotlit: Mind2Web data, both stages, export, evaluation
 │   ├── train/                  the starting table: closed-form fit, distillation
 │   ├── export/                 .tlab writer (INT8, budget-checked)
 │   ├── eval/                   retrieval evaluation harness, standard library only
@@ -275,6 +275,6 @@ Writing code here follows [AGENTS.md](AGENTS.md).
 ## Licence
 
 Code: MIT ([LICENSE](LICENSE)). Model weights: Apache-2.0
-([models/element-ranker-v1/LICENSE](models/element-ranker-v1/LICENSE)), with credits for
+([models/spotlit-v1/LICENSE](models/spotlit-v1/LICENSE)), with credits for
 Google's BERT miniatures, Mind2Web and the training text in
-[NOTICE](models/element-ranker-v1/NOTICE).
+[NOTICE](models/spotlit-v1/NOTICE).

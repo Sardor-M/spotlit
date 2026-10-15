@@ -2,7 +2,7 @@
 
 tinylab's first goal was a text embedding model under 2 MB, with no tokenizer, that adds to
 keyword search (BM25) in hybrid retrieval. This page records what it reached and what did
-not work. Its weights became the starting point of the element ranker's stage 1.
+not work. Its weights became the starting point of Spotlit's stage 1.
 
 ## Setup
 

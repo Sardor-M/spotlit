@@ -26,7 +26,7 @@ python3 -m http.server 8765 --bind 127.0.0.1   # then open /web/bench.html
 against the exporter's `goldens.json`. `bench.html` repeats both in a browser and times
 embedding on the main thread.
 
-## Element ranker (ADR-0012 to 0014)
+## Spotlit (ADR-0012 to 0014)
 
 Two stages for browser agents: stage 1 is the same `.tlab` runtime on a table trained on
 Mind2Web; stage 2 re-scores stage 1's top 400 elements with a BERT-tiny cross-encoder through
@@ -47,12 +47,12 @@ node web/test/wordpiece-parity.mjs dist/reranker-bert_uncased_L-2_H-128_A-2-v1
 
 ```js
 import * as ort from "onnxruntime-web";
-import { ElementRanker, collectCandidates } from "./src/element-ranker.js";
+import { Spotlit, collectCandidates } from "./src/spotlit.js";
 
-const ranker = await ElementRanker.load(ort, {
-  stage1: "models/element-ranker-v1/stage1.tlab",
-  reranker: "models/element-ranker-v1/reranker.int8.onnx",
-  vocab: "models/element-ranker-v1/vocab.txt",
+const ranker = await Spotlit.load(ort, {
+  stage1: "models/spotlit-v1/stage1.tlab",
+  reranker: "models/spotlit-v1/reranker.int8.onnx",
+  vocab: "models/spotlit-v1/vocab.txt",
 });
 const top = await ranker.rank("book a table for two tonight", collectCandidates(document), { k: 50 });
 ```

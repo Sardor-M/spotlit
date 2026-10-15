@@ -12,13 +12,13 @@
 </style>
 </head>
 <body>
-<h1>tinylab re-rank bench</h1>
+<h1>Spotlit re-rank bench</h1>
 <p class="muted">Stage 1 (2 MB, tinylab.js) ranks each page's elements, then a BERT re-ranker (ONNX Runtime Web) re-scores
 the top 400 (goal, element) pairs. Times are medians per page step on this browser. Needs a cross-origin isolated page for
 WebAssembly threads; <code>?ort=</code> sets where ONNX Runtime Web is served (default <code>/ortweb/</code>).</p>
 <pre id="out">running...</pre>
 <script type="module">
-import { ElementRanker, queryOf } from "./src/element-ranker.js";
+import { Spotlit, queryOf } from "./src/spotlit.js";
 
 const params = new URLSearchParams(location.search);
 const ORT_BASE = params.get("ort") ?? "/ortweb/";
@@ -39,7 +39,7 @@ const median = (xs) => { const s = [...xs].sort((a, b) => a - b); return s[Math.
 async function bench(ort, data, [name, dir, key], variant, ep) {
   let ranker;
   try {
-    ranker = await ElementRanker.load(ort, { stage1: "/dist/tinylab-ranker-v1/student.tlab",
+    ranker = await Spotlit.load(ort, { stage1: "/dist/tinylab-ranker-v1/student.tlab",
       reranker: `${dir}/reranker.${variant}.onnx`, vocab: `${dir}/vocab.txt` }, [ep]);
   } catch (error) {
     log({ model: name, variant, ep, error: String(error).slice(0, 160) });

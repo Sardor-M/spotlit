@@ -1,5 +1,5 @@
 {
-  "name": "tinylab element ranker",
+  "name": "spotlit",
   "version": "1.0.0",
   "task": "rank a web page's elements against an agent's goal",
   "license": "Apache-2.0",
