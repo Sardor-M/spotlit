@@ -1,4 +1,4 @@
-// Spotlit, an element ranker for browser agents: tinylab stage 1 plus a BERT-tiny re-ranker (ADR-0012 to 0014).
+// spotlit, an element ranker for browser agents: tinylab stage 1 plus a BERT-tiny re-ranker (ADR-0012 to 0014).
 
 import { Student, cosine } from "./tinylab.js";
 import { WordPiece } from "./wordpiece.js";
@@ -51,22 +51,22 @@ export function collectCandidates(root = document, limit = 2000) {
   return out;
 }
 
-export class Spotlit {
+/**
+ * `ort` is ONNX Runtime Web. `stage1` and `reranker` are URLs or ArrayBuffers; `vocab` is a URL, or pass
+ * `vocabText`. INT8 re-rankers must run on the "wasm" provider: WebGPU scores them wrongly (ORT Web 1.30).
+ */
+export async function load(ort, { stage1, reranker, vocab, vocabText }, executionProviders = ["wasm"]) {
+  const bytes = async (source) => (source instanceof ArrayBuffer ? source : (await fetch(source)).arrayBuffer());
+  const student = Student.fromBuffer(await bytes(stage1));
+  const model = new Uint8Array(await bytes(reranker));
+  const session = await ort.InferenceSession.create(model, { executionProviders, graphOptimizationLevel: "all" });
+  const vocabulary = vocabText ?? (await (await fetch(vocab)).text());
+  return new Ranker(ort, student, session, new WordPiece(vocabulary));
+}
+
+export class Ranker {
   constructor(ort, stage1, session, tokenizer) {
     Object.assign(this, { ort, stage1, session, tokenizer });
-  }
-
-  /**
-   * `ort` is ONNX Runtime Web. `stage1` and `reranker` are URLs or ArrayBuffers; `vocab` is a URL, or pass
-   * `vocabText`. INT8 re-rankers must run on the "wasm" provider: WebGPU scores them wrongly (ORT Web 1.30).
-   */
-  static async load(ort, { stage1, reranker, vocab, vocabText }, executionProviders = ["wasm"]) {
-    const bytes = async (source) => (source instanceof ArrayBuffer ? source : (await fetch(source)).arrayBuffer());
-    const student = Student.fromBuffer(await bytes(stage1));
-    const model = new Uint8Array(await bytes(reranker));
-    const session = await ort.InferenceSession.create(model, { executionProviders, graphOptimizationLevel: "all" });
-    const vocabulary = vocabText ?? (await (await fetch(vocab)).text());
-    return new Spotlit(ort, student, session, new WordPiece(vocabulary));
   }
 
   /** Stage 1 order of every candidate, best first. */

@@ -1,4 +1,4 @@
-# Spotlit v1
+# spotlit v1
 
 A 6.7 MB open-weight model that ranks a web page's elements against an AI agent's goal, in
 the browser. An agent sends only the top 50 elements to its large model instead of the whole
@@ -31,14 +31,14 @@ The goal is the task plus up to three previous actions: `goal + " Previous actio
 
 ```js
 import * as ort from "onnxruntime-web";
-import { Spotlit, collectCandidates } from "./web/src/spotlit.js";
+import * as spotlit from "./web/src/spotlit.js";
 
-const ranker = await Spotlit.load(ort, {
+const ranker = await spotlit.load(ort, {
   stage1: "models/spotlit-v1/stage1.tlab",
   reranker: "models/spotlit-v1/reranker.int8.onnx",
   vocab: "models/spotlit-v1/vocab.txt",
 });
-const top50 = await ranker.rank("Find the retired players named James Smith", collectCandidates(document));
+const top50 = await ranker.rank("Find the retired players named James Smith", spotlit.collectCandidates(document));
 ```
 
 Run the INT8 re-ranker on ONNX Runtime Web's `wasm` provider. On the WebGPU provider of ORT

@@ -1,4 +1,4 @@
-# Spotlit on Mind2Web
+# spotlit on Mind2Web
 
 What the released model (`models/spotlit-v1`) was trained and measured on, and every
 variant tried along the way.
