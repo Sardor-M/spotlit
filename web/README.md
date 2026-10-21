@@ -59,3 +59,18 @@ const top = await ranker.rank("book a table for two tonight", spotlit.collectCan
 
 `collectCandidates` describes live elements the way the training data does (tag, key
 attributes, own text, parent text); `rank` returns the top `k` with each one's stage 1 rank.
+
+## Packed weights
+
+`node web/pack.mjs` writes `dist/spotlit-v1.weights.gz`: the three model files in one gzipped file
+(5.0 MB), for a single download. `spotlit.loadPacked(ort, url)` loads it and checks each part
+against its sha256.
+
+```js
+const ranker = await spotlit.loadPacked(ort, "spotlit-v1.weights.gz");
+```
+
+Before gzip, the file is the 8 bytes `SPOTLIT1`, a little-endian uint32 header length, a JSON
+header (the manifest's name, version, license and input formats, plus `files: [{ name, offset, length, sha256 }]`), then the files back to
+back, with offsets counted from the end of the header. It is spotlit's own format, not a PyTorch
+checkpoint. `pack.mjs` is deterministic, so the same model files always give the same file.

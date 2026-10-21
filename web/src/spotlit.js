@@ -64,6 +64,34 @@ export async function load(ort, { stage1, reranker, vocab, vocabText }, executio
   return new Ranker(ort, student, session, new WordPiece(vocabulary));
 }
 
+const PACK_MAGIC = "SPOTLIT1";
+const hex = (bytes) => [...new Uint8Array(bytes)].map((b) => b.toString(16).padStart(2, "0")).join("");
+
+/** The model files inside a packed weights file (gzipped or not, format in web/README.md), each checked against its sha256. */
+export async function unpack(buffer) {
+  let bytes = new Uint8Array(buffer);
+  if (bytes[0] === 0x1f && bytes[1] === 0x8b) {
+    bytes = new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"))).arrayBuffer());
+  }
+  if (new TextDecoder().decode(bytes.subarray(0, 8)) !== PACK_MAGIC) throw new Error("not a packed spotlit file");
+  const headerLength = new DataView(bytes.buffer, bytes.byteOffset).getUint32(8, true);
+  const { files } = JSON.parse(new TextDecoder().decode(bytes.subarray(12, 12 + headerLength)));
+  const start = 12 + headerLength, out = {};
+  for (const { name, offset, length, sha256 } of files) {
+    const part = bytes.slice(start + offset, start + offset + length);
+    // crypto.subtle exists only in secure contexts (https or localhost).
+    if (globalThis.crypto?.subtle && hex(await crypto.subtle.digest("SHA-256", part)) !== sha256) throw new Error(`${name} does not match its checksum`);
+    out[name] = part.buffer;
+  }
+  return out;
+}
+
+/** `load` from one packed weights file, given as a URL or an ArrayBuffer. */
+export async function loadPacked(ort, source, executionProviders = ["wasm"]) {
+  const files = await unpack(source instanceof ArrayBuffer ? source : await (await fetch(source)).arrayBuffer());
+  return load(ort, { stage1: files["stage1.tlab"], reranker: files["reranker.int8.onnx"], vocabText: new TextDecoder().decode(files["vocab.txt"]) }, executionProviders);
+}
+
 export class Ranker {
   constructor(ort, stage1, session, tokenizer) {
     Object.assign(this, { ort, stage1, session, tokenizer });
