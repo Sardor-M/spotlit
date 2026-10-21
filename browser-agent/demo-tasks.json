@@ -1,0 +1,58 @@
+[
+  {
+    "id": "demo-wiki-tallest",
+    "start": "https://en.wikipedia.org/wiki/Japan",
+    "task": "Open the article about the capital city of Japan. From that article, open the article about the city's tallest structure, and report that structure's height in metres.",
+    "check": { "url": "/wiki/Tokyo_Skytree", "answer": "634" },
+    "probe": "Tokyo",
+    "goal": "link to the Tokyo article"
+  },
+  {
+    "id": "demo-wiki-mountains",
+    "start": "https://en.wikipedia.org/wiki/Main_Page",
+    "task": "Use Wikipedia's search box to look up three mountains, one at a time: K2, Kangchenjunga and Lhotse. On each article, read the elevation in metres from the infobox. Report which of the three is tallest and all three elevations, written as on the pages (for example 1,234 m).",
+    "check": { "answer": ["8,611", "8,586", "8,516"] },
+    "probe": "search",
+    "goal": "search box"
+  },
+  {
+    "id": "demo-books-cheapest",
+    "start": "https://books.toscrape.com/",
+    "task": "Open the Travel category and find the cheapest book in it. Open that book's page and report its title, its price and how many copies are in stock.",
+    "check": { "answer": ["Little Dribbling", "23.21"] },
+    "probe": "Travel",
+    "goal": "Travel category link"
+  },
+  {
+    "id": "demo-books-upc",
+    "start": "https://books.toscrape.com/",
+    "task": "Using the next-page button at the bottom of the catalogue, go to page 5. Open the first book listed on that page and report its UPC from the product information table.",
+    "check": { "answer": "0fa6dceead7ce47a" },
+    "probe": "next",
+    "goal": "next page button"
+  },
+  {
+    "id": "demo-quotes-humor",
+    "start": "https://quotes.toscrape.com/",
+    "task": "Show the quotes tagged \"humor\" and go through every page of them. Report how many humor quotes there are in total and which author appears more than once.",
+    "check": { "answer": ["12", "Jane Austen"] },
+    "probe": "humor",
+    "goal": "humor tag link"
+  },
+  {
+    "id": "demo-hockey-losses",
+    "start": "https://www.scrapethissite.com/pages/forms/",
+    "task": "Search the hockey team statistics for \"Detroit Red Wings\". In the results, find the season with the most losses and report its year and its number of losses.",
+    "check": { "answer": ["1990", "38"] },
+    "probe": "Search",
+    "goal": "search box for teams"
+  },
+  {
+    "id": "demo-pydocs-deque",
+    "start": "https://docs.python.org/3/library/index.html",
+    "task": "Open the documentation for the collections module, go to the section about deque objects, and report the Python version in which the deque attribute maxlen was added.",
+    "check": { "url": "collections.html", "answer": "3.1" },
+    "probe": "collections",
+    "goal": "collections module link"
+  }
+]

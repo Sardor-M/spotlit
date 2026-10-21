@@ -1,0 +1,9 @@
+{
+  "name": "spotlit-browser-agent",
+  "private": true,
+  "type": "module",
+  "description": "Test spotlit inside real browser agents (Claude Code, Codex) with and without the ranker.",
+  "dependencies": {
+    "onnxruntime-web": "1.30.0"
+  }
+}

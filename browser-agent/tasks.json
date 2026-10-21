@@ -1,0 +1,37 @@
+[
+  {
+    "id": "wiki-skytree",
+    "start": "https://en.wikipedia.org/wiki/Tokyo",
+    "task": "On this Wikipedia article about Tokyo, find the link to the article about Tokyo Skytree and open it.",
+    "check": { "url": "/wiki/Tokyo_Skytree" },
+    "probe": "Skytree"
+  },
+  {
+    "id": "wiki-search",
+    "start": "https://en.wikipedia.org/wiki/Main_Page",
+    "task": "Use Wikipedia's search box to search for \"BERT language model\" and open the article about BERT, the language model.",
+    "check": { "url": "/wiki/BERT_(language_model)" },
+    "probe": "search"
+  },
+  {
+    "id": "books-price",
+    "start": "https://books.toscrape.com/",
+    "task": "Open the Mystery category, open the book \"Sharp Objects\", and report its price.",
+    "check": { "answer": "47.82" },
+    "probe": "Mystery"
+  },
+  {
+    "id": "quotes-love",
+    "start": "https://quotes.toscrape.com/",
+    "task": "Show the quotes tagged \"love\", then go to the second page of those quotes.",
+    "check": { "url": "/tag/love/page/2" },
+    "probe": "love"
+  },
+  {
+    "id": "pydocs-groupby",
+    "start": "https://docs.python.org/3/library/index.html",
+    "task": "Open the documentation for the itertools module, then go to the section about itertools.groupby.",
+    "check": { "url": "itertools.html#itertools.groupby" },
+    "probe": "itertools"
+  }
+]
