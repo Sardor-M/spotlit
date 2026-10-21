@@ -3,6 +3,8 @@
 Public documentation lives here.
 
 - [benchmarks/](benchmarks/README.md): every measurement behind the release
+- [reproduce.md](reproduce.md): every command from the Mind2Web download to the released files
+- [strengths-and-limits.md](strengths-and-limits.md): what spotlit is good at and where it falls short, with evidence
 - [../models/spotlit-v1/](../models/spotlit-v1/README.md): the model card
 - [../python/tinylab/export/README.md](../python/tinylab/export/README.md): the `.tlab` file format
 - [../web/README.md](../web/README.md): the browser runtime and API
