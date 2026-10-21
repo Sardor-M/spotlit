@@ -1,9 +1,10 @@
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/img/spotlit-banner-dark.png">
-  <img alt="spotlit: lights up the elements an AI browser agent needs" src="docs/img/spotlit-banner-light.png">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/spotlit-mark-dark.png">
+  <img alt="spotlit" src="docs/img/spotlit-mark-light.png" height="48">
 </picture>
 
-# spotlit
+[Live demo](https://spotlit-v1.pages.dev) &middot; [Write-up](https://spotlit-v1.pages.dev/blog/spotlit/) &middot;
+[Weights on Hugging Face](https://huggingface.co/Sardori/spotlit-v1) &middot; [Model card](models/spotlit-v1/README.md)
 
 spotlit is an open-weight model that ranks a web page's elements against an AI browser
 agent's goal, so the agent sends its large model the 50 elements that matter instead of the
@@ -21,8 +22,9 @@ against about 44% for keyword search, while the agent reads 32-43x fewer tokens.
 
 This repository holds the code that builds the training data from Mind2Web, trains both
 stages, exports them to INT8, evaluates them, and runs them in the browser (JavaScript) and in
-C++. To use the model, see the [model card](models/spotlit-v1/README.md) or download
-the [v1.0.0 release](../../releases/tag/spotlit-v1.0.0). spotlit is built with tinylab, the
+C++. To use the model, see the [model card](models/spotlit-v1/README.md), or download it
+from [Hugging Face](https://huggingface.co/Sardori/spotlit-v1), which also has the
+full-precision re-ranker for Python, or from the [v1.0.0 release](../../releases/tag/spotlit-v1.0.0). spotlit is built with tinylab, the
 training toolkit in `python/tinylab`; the Python package and command-line tools keep that name.
 
 ## How it works
@@ -144,6 +146,18 @@ ranks; `history` is the agent's previous actions. Run it on the `wasm` execution
 Stage 1 and the WordPiece tokenizer are dependency-free JavaScript in
 [`web/src/`](web/README.md); stage 1 also has a C++ runtime in [`cpp/`](cpp/).
 
+For one download instead of three, `node web/pack.mjs` packs the model files into
+`spotlit-v1.weights.gz` (5.0 MB), and `spotlit.loadPacked(ort, url)` loads it and checks each
+part against its sha256 ([format](web/README.md#packed-weights)).
+
+### In an agent
+
+[`browser-agent/`](browser-agent/README.md) runs spotlit inside Claude Code or Codex through a
+small MCP browser server, once showing the agent every element and once only spotlit's top 50.
+On seven multi-page tasks with Claude Sonnet, both finished all seven; with spotlit the agent
+read 427,787 input tokens instead of 2,700,384 ($0.48 instead of $3.55) and took 173 s
+instead of 149 s.
+
 ## Setup
 
 Python 3.12 or 3.13 with [uv](https://docs.astral.sh/uv/), Node.js (tested on 23), and for the
@@ -257,7 +271,9 @@ closed the gap. Its table became stage 1's starting point. The record is in
 
 ```
 ├── models/spotlit-v1/          the release: weights, manifest, model card, licence, credits
-├── web/                        browser runtime: src/ (spotlit.js, tinylab.js, wordpiece.js), tests, bench pages
+├── web/                        browser runtime: src/ (spotlit.js, tinylab.js, wordpiece.js), pack.mjs, tests, bench pages
+├── browser-agent/              spotlit inside Claude Code and Codex: MCP browser server, tasks, runners
+├── release/                    builds the Hugging Face release and its model card
 ├── cpp/                        C++ runtime for the .tlab format, parity tests
 ├── python/tinylab/
 │   ├── agent/                  spotlit: Mind2Web data, both stages, export, evaluation
@@ -267,7 +283,7 @@ closed the gap. Its table became stage 1's starting point. The record is in
 │   ├── data/                   corpora, teacher labelling, word features
 │   └── encoder.py              byte n-gram hashing, the frozen input contract
 ├── tests/                      golden vectors shared by Python, JavaScript and C++
-└── docs/                       benchmarks/ (every measurement), img/ (logo, banner)
+└── docs/                       benchmarks/ (every measurement), img/ (logo, README mark; *_old is the earlier banner)
 ```
 
 Writing code here follows [AGENTS.md](AGENTS.md).
