@@ -33,8 +33,8 @@ quarter of a second per page.
 ## Benchmarks
 
 The numbers come from [Mind2Web](https://github.com/OSU-NLP-Group/Mind2Web): people completing
-tasks on real websites, one clicked element per step. Recall@k is the share of steps whose
-clicked element is in the top k. The three test splits were opened once, after the files were
+tasks on real websites, one target element per step: the one they clicked, typed into or chose
+from. Recall@k is the share of steps whose target element is in the top k. The three test splits were opened once, after the files were
 frozen; every decision was made on a separate dev split.
 
 **Recall@50 on the test splits**
@@ -65,7 +65,7 @@ frozen; every decision was made on a separate dev split.
 | Tasks finished | 7 of 7 | 7 of 7 |
 
 Cross-website and cross-domain are the numbers to trust: websites and whole domains the model
-never trained on, where spotlit keeps the clicked element 31-32 points more often than keyword
+never trained on, where spotlit keeps the target element 31-32 points more often than keyword
 search. Cross-task is higher because its websites appear in training. MindAct's ranker is 29
 times larger and keeps 8-10 points more.
 
@@ -93,7 +93,7 @@ one step in four on new websites, so an agent should keep a fallback.
 | **A shortlist, not a picker** | Dev recall@1 is 10.9% and recall@10 is 49.3% | The agent's model still has to choose among the 50 |
 | **Misses about one step in four on new websites** | Cross-website recall@50 is 75.8%; recall@100 is 82.3% | An agent needs a fallback: a larger k, or the full page |
 | **Behind larger rankers** | MindAct's 184M-parameter ranker reports 8-10 points more recall@50 | BERT-mini (13.4 MB) was 6 points better on dev but took 1.2 s per step |
-| **Stage 1 caps stage 2** | Stage 1's top 400 holds the clicked element on 87.6% of dev steps | The other 12.4% can't be recovered by the re-ranker |
+| **Stage 1 caps stage 2** | Stage 1's top 400 holds the target element on 87.6% of dev steps | The other 12.4% can't be recovered by the re-ranker |
 | **Look-alikes** | For "Sign in to my account", stage 2 ranks "Sign up free" first and "Log in" fifth | Unusual wording on a site can mislead it |
 
 It was trained on English websites from 2023 and reads text only, with no screenshot, position

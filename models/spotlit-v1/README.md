@@ -2,8 +2,8 @@
 
 A 6.7 MB open-weight model that ranks a web page's elements against an AI agent's goal, in
 the browser. An agent sends only the top 50 elements to its large model instead of the whole
-page: 32-43x fewer tokens per step, with the element a person actually clicked kept in the
-top 50 for 76-81% of steps on unseen Mind2Web test sites.
+page: 32-43x fewer tokens per step, with the element a person actually used (clicked, typed
+into or chose from) kept in the top 50 for 76-81% of steps on unseen Mind2Web test sites.
 
 ## Files
 
@@ -47,7 +47,8 @@ isolated page (COOP/COEP headers); without them it runs on one thread at about 1
 
 ## Evaluation
 
-Mind2Web, share of steps whose clicked element is in the top k. Test splits were run once,
+Mind2Web, share of steps whose target element (the one the person clicked, typed into or chose
+from) is in the top k. Test splits were run once,
 after the files were frozen (sha256 in `manifest.json`).
 
 | Split | Steps | BM25 r@50 | Stage 1 r@50 | **r@10** | **r@50** | **r@100** | Tokens, top 50 |
@@ -59,7 +60,7 @@ after the files were frozen (sha256 in `manifest.json`).
 
 For reference, MindAct's DeBERTa-v3-base ranker (the benchmark authors'; 184M parameters
 with its embedding table, about 29 times ours) reports 88.9 / 85.3 / 85.7% r@50 on the same
-test splits. Candidate descriptions differ, and steps whose clicked element is missing from
+test splits. Candidate descriptions differ, and steps whose target element is missing from
 the page HTML (4-7%) count as misses here, so the comparison is approximate. Full details:
 `docs/benchmarks/spotlit.md`.
 
@@ -67,7 +68,7 @@ the page HTML (4-7%) count as misses here, so the comparison is approximate. Ful
 
 - Trained on Mind2Web's English websites from 2023; other languages and very different
   page structures are untested.
-- About one step in four loses the clicked element from the top 50. An agent should be able
+- About one step in four loses the target element from the top 50. An agent should be able
   to ask for more elements or fall back to the full page.
 - The token counts are estimates (four characters per token) against the step's cleaned HTML.
 

@@ -17,16 +17,16 @@ would read, and tokens saved. It also ranks any pasted HTML.
 
 | Measure | Value |
 | :--- | :--- |
-| Clicked element in the top 50 | 29 of 36 steps |
+| Target element in the top 50 | 29 of 36 steps |
 | Agreement with the Python pipeline on top-50 membership | 36 of 36 steps |
 | Time per page step, one thread | about 1 s |
 | Time per page step, eight threads (bench page) | about 0.2 s |
 | Tokens per step, top 50 vs cleaned HTML | median 27x fewer (7x to 154x by page) |
 
 Two of the eight tasks are shown because the model struggles on them: on a travel site the
-clicked element misses the top 50 on four of five steps, and on a car retailer on two of six.
+target element misses the top 50 on four of five steps, and on a car retailer on two of six.
 A first version of the demo with 30 single steps from 10 websites agreed with Python on
-30/30 and kept the clicked element in the top 50 on 24.
+30/30 and kept the target element in the top 50 on 24.
 
 ## Pasted HTML
 

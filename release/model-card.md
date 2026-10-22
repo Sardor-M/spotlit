@@ -23,9 +23,9 @@ two stages, ships as 6.7 MB, and needs no server and no GPU: about a quarter of 
 page on eight WebAssembly threads.
 
 On Mind2Web's three test splits, run once after the model was frozen, the element a person
-actually clicked is in the top 50 on 80.8%, 75.8% and 75.9% of steps (cross-task,
-cross-website, cross-domain), against about 44% for keyword search, while the agent reads 32 to
-43 times fewer tokens.
+actually used (clicked, typed into or chose from) is in the top 50 on 80.8%, 75.8% and 75.9%
+of steps (cross-task, cross-website, cross-domain), against about 44% for keyword search, while
+the agent reads 32 to 43 times fewer tokens.
 
 Source, training code and the browser demo: {{GITHUB}}
 
@@ -107,7 +107,8 @@ JavaScript, and the GitHub repository has the Python and C++ versions.
 
 ## Evaluation
 
-Mind2Web, share of steps whose clicked element is in the top k. The test splits were run once,
+Mind2Web, share of steps whose target element (the one the person clicked, typed into or chose
+from) is in the top k. The test splits were run once,
 after the files were frozen.
 
 | Split | Steps | Keyword search (BM25) r@50 | Stage 1 r@50 | r@10 | **r@50** | r@100 | Fewer tokens, top 50 |
@@ -119,7 +120,7 @@ after the files were frozen.
 
 For reference, MindAct's DeBERTa-v3-base ranker (the benchmark authors', 184M parameters with
 its embedding table) reports 88.9, 85.3 and 85.7% r@50 on the test splits. Candidate
-descriptions differ, and steps whose clicked element is missing from the page HTML (4 to 7%)
+descriptions differ, and steps whose target element is missing from the page HTML (4 to 7%)
 count as misses here, so the comparison is approximate.
 
 Inside Claude Code (Sonnet), on seven multi-page browser tasks, an agent reading spotlit's top
@@ -128,7 +129,7 @@ finished all seven tasks.
 
 ## Limits
 
-- About one step in four loses the clicked element from the top 50. An agent should be able to
+- About one step in four loses the target element from the top 50. An agent should be able to
   ask for more elements or fall back to the full page.
 - Trained on English websites from 2023; other languages and very different page structures
   are untested.
@@ -141,7 +142,7 @@ Mind2Web's train split only: 6,669 steps for training and 1,106 steps from held-
 for development. The test splits were used for evaluation only. Stage 1 started from a tinylab text-search table distilled
 from `BAAI/bge-small-en-v1.5` and was trained with a softmax over each page's candidates for
 three epochs. Stage 2 is `google/bert_uncased_L-2_H-128_A-2` fine-tuned as a cross-encoder on
-the clicked element and 31 others from stage 1's top 400, for three epochs. INT8 export changed
+the target element and 31 others from stage 1's top 400, for three epochs. INT8 export changed
 development r@50 by +0.6 points.
 
 ## License

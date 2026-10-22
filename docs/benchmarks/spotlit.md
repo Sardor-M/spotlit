@@ -5,8 +5,9 @@ variant tried along the way.
 
 ## Task
 
-At each step of a recorded web task, a person clicked one element. Given the task and the
-previous actions, rank the page's candidate elements so the clicked one comes first. An
+At each step of a recorded web task, a person acted on one element, the target: they clicked
+it, typed into it or chose from it. Given the task and the previous actions, rank the page's
+candidate elements so the target comes first. An
 agent would send the top k to its large model.
 
 - **Data.** [Mind2Web](https://github.com/OSU-NLP-Group/Mind2Web) (CC BY 4.0). Train split
@@ -18,8 +19,8 @@ agent would send the top k to its large model.
   cleaned HTML: tag, key attributes, up to 24 words of own text, `|`, 12 words of parent
   text (`python/tinylab/agent/dom.py`).
 - **Query.** The task plus up to three previous actions.
-- **Metric.** r@k, the share of steps whose clicked element is in the top k; MRR. Steps
-  whose clicked element is not among the described candidates (4-7%) count as misses.
+- **Metric.** r@k, the share of steps whose target element is in the top k; MRR. Steps
+  whose target element is not among the described candidates (4-7%) count as misses.
 - **Tokens.** Characters of the step's cleaned HTML divided by characters of the top-k
   descriptions (median over steps).
 
@@ -63,7 +64,7 @@ Notes:
 - Stage 1's r@50 on its 400-step logging sample levelled off near 53% from update 11,000
   while training loss kept falling: it memorizes training websites. The pretrained re-ranker is what generalizes.
 - Fusing stage 1 with BM25 does not help.
-- A re-ranker can only promote what stage 1 returns. Stage 1 holds the clicked element in
+- A re-ranker can only promote what stage 1 returns. Stage 1 holds the target element in
   its top 300 / 400 for 84.7% / 87.6% of steps, the ceiling for a re-ranker of that depth.
 - INT8 export changed dev r@50 by +0.006 (BERT-tiny) and -0.004 (BERT-mini).
 
